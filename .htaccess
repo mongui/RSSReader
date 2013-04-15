@@ -1,0 +1,8 @@
+RewriteEngine on
+RewriteCond $1 !^(index\.php|public_data|robots\.txt|phpinfo\.php)
+
+#For PHP version higher than 5.2.6:
+RewriteRule ^(.*)$ /rssreader/index.php?/$1 [L]
+
+#For PHP version less than 5.2.6:
+#RewriteRule ^(.*)$ /rssreader/index.php/$1 [L]

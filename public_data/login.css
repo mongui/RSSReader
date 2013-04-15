@@ -1,0 +1,118 @@
+body {
+	margin: 0;
+	padding: 0;
+}
+
+/* INFO AND ERRORS */
+
+.info {
+	margin: auto;
+	padding: 6px;
+	font-weight: bold;
+	top: 0;
+	left: 50%;
+	position: absolute;
+	border-radius: 0 0 10px 10px;
+	text-align: center;
+	display: none;
+}
+
+#loader {
+	background: #f9dd7d;
+	margin-left: -35px;
+	width: 70px;
+}
+
+#error {
+	background: #FFA7A7;
+	margin-left: -105px;
+	width: 210px;
+}
+
+#success {
+	background: #9EFCB3;
+
+	margin-left: -175px;
+	width: 350px;
+}
+
+.empty-input {
+	border-color: #FFA7A7 !important;
+	box-shadow: 0 0 5px #FC8585;
+}
+
+/* LOGIN BOX */
+
+.login {
+	width: 350px;
+	height: 350px;
+	border: 1px solid #AAAAAA;
+	margin: 10% auto 0;
+	border-radius: 5px;
+	font-family: Arial, serif;
+	font-size: 14px;
+	box-shadow: 0 0 20px #AAAAAA;
+}
+
+#logo {
+	background: url("images/logo.png") no-repeat scroll center;
+	height: 40px;
+	margin-top: 25px;
+}
+
+/* LOGIN FORM */
+.input {
+	margin: 25px;
+}
+
+.login input[type=text],
+.login input[type=password] {
+	width: 95%;
+	border: 1px solid #AAAAAA;
+	border-radius: 5px;
+	padding: 5px 7px;
+	margin-top: 3px;
+}
+
+.controls {
+	margin: 0 25px;
+}
+
+.control-login {
+	float: left;
+	width: 45%;
+}
+
+.button-submit {
+	background-color: #EEEEEE;
+	border: 1px solid #AAAAAA;
+	border-radius: 5px;
+	cursor: pointer;
+	height: 35px;
+	padding: 0 15px;
+}
+
+.change-form {
+	float: right;
+	width: 45%;
+	text-align: right;
+	font-size: 10px;
+	font-weight: bold;
+}
+
+.change-form span:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+/* FORGOTEN PASSWORD FORM */
+
+#forgoten-password-form {
+	display: none;
+}
+
+/* REGISTER FORM */
+
+#register-form {
+	display: none;
+}
