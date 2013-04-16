@@ -9,10 +9,9 @@ abstract class ControllerBase
 		$this->config = new Config();
 		$this->load = new Load();
 
-		global $folders, $database;
+		global $config;
 
-		$this->config->set('folders', $folders);
-		$this->config->set('database', $database);
+		$this->config->set_array($config);
 		self::$inst =& $this;
 	}
 

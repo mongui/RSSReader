@@ -64,7 +64,7 @@ if ( !empty($uri) )
 
 	if ( !$uripos )
 	{
-		array_unshift($uri, $default_controller);
+		array_unshift($uri, $config['default_controller']);
 		$uripos = load_controller($uri);
 
 		if ( !$uripos )
@@ -73,7 +73,7 @@ if ( !empty($uri) )
 }
 else
 {
-	$uri = array($default_controller);
+	$uri = array($config['default_controller']);
 	$uripos = load_controller($uri);
 	if ( !$uripos )
 		trigger_error('Request controller not exists!', E_USER_ERROR);

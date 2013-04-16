@@ -7,13 +7,13 @@ class Rssreader extends ControllerBase
 		parent::__construct();
 
 		session_start ();
-
-		date_default_timezone_set('UTC');
-
 		//http://simplepie.org/wiki/reference/start
 		$this->load->helper('url');
 		$this->load->model('connections');
 		$this->load->model('manage_users');
+
+		$this->connections->load_config();
+		date_default_timezone_set( $this->config->get('timezone') );
 	}
 
 	public function index()
@@ -21,32 +21,9 @@ class Rssreader extends ControllerBase
 		// Is the user logged?
 		if ( isset($_SESSION['id']) )
 			$this->load->view('main');
+		// Send him to login form.
 		else
-		{
-			// Send him to login form.
 			redirect( site_url('login') );
-		}
-	}
-
-	public function prueba()
-	{
-	/*
-		$prueba1 = $body;
-		//$prueba2 = $this->manage_users->change_password ('1', '123456');
-		echo '<pre>';
-		if(isset($prueba1)) print_r($prueba1);
-		if(isset($prueba2)) print_r($prueba2);
-		echo '</pre>';
-*/
-		//$this->load->view('prueba');
-		//$this->connections->update_feed ( 1 );
-		//print_r($this->connections->hash_generator( '123456' ));
-		//echo $this->connections->feed_in_database ('http://feeds.feedburner.com/microsiervosa' );
-		//echo $this->connections->url_from_feed_id ( 2 );
-		//echo $this->connections->user_has_feed ( 1, 1 );
-		//echo $this->connections->feed_in_database ( 'http://www.raspbmc.com/feed/' );
-		//echo $this->hash_generator('123456');
-		//echo '<br>' . $this->hash_checker('123456', strtolower('Pepe'));
 	}
 
 	public function update( $feed_id = FALSE )
@@ -56,15 +33,16 @@ class Rssreader extends ControllerBase
 				return $this->connections->update_feed($feed_id);
 	}
 
-	public function update_all( $seconds_ago = 1800, $max_feeds = 10 )
+	public function update_all()
 	{
 		echo 'Updating... ';
 
 		set_time_limit(300);
 		ini_set('memory_limit', '256M');
-		//600	// 10 minutes in seconds.
-		//1800	// 30 minutes in seconds.
-		//86400 // 1 day in seconds.
+
+		$seconds_ago = $this->config->get('minutes_between_updates') * 60;
+		$max_feeds = $this->config->get('max_feeds_per_update');
+
 		$feeds = $this->connections->feeds_not_uptated( $seconds_ago, $max_feeds );
 
 		foreach ( $feeds as $feed )
@@ -122,7 +100,9 @@ class Rssreader extends ControllerBase
 							$this->add_feed(filter_var($feed['xmlUrl'], FILTER_SANITIZE_STRING));
 						}
 
-					} else {
+					}
+					else
+					{
 						exit('failure');
 					}
 
@@ -165,6 +145,18 @@ class Rssreader extends ControllerBase
 				$rtrn = $this->manage_users->update_user ( $userdata );
 			}
 
+			if ( $_POST['timezone'] )
+			{
+				$serverdata = array (
+								'timezone'					=> filter_var($_POST['timezone'], FILTER_SANITIZE_STRING),
+								'minutes_between_updates'	=> filter_var($_POST['mins_updates'], FILTER_VALIDATE_INT),
+								'max_feeds_per_update'		=> filter_var($_POST['max_feeds'], FILTER_VALIDATE_INT),
+								'feed_updatable'			=> ( $_POST['feed_updatable'] == 1 ) ? 'true' : 'false'
+							);
+
+				$this->connections->save_config($serverdata);
+			}
+
 			if ( isset($rtrn) || (!$_POST['curPassword'] && !$_POST['newPassword']) )
 			{
 				$_SESSION['timeformat'] = $userdata['time_format'];
@@ -176,7 +168,15 @@ class Rssreader extends ControllerBase
 		}
 		else
 		{
-			echo $this->load->view('preferences', NULL, TRUE);
+			$data = NULL;
+			if ( $this->config->get('admin') == $_SESSION['id'] )
+			{
+				$data['is_admin'] = TRUE;
+				$data['timezones'] = file($this->config->get('document_root') . $this->config->get('index_path') . '/timezones.txt');
+				$data['timezones'] = array_map('trim', $data['timezones']);
+			}
+
+			echo $this->load->view('preferences', $data, TRUE);
 		}
 	}
 

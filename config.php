@@ -1,13 +1,13 @@
 <?php if ( !defined('MVCious')) exit('No direct script access allowed');
 
-$default_controller	= 'rssreader';
-$protocol			= 'http';
-$server_host		= 'localhost';
-$index_file			= 'index.php';
-$document_root		= '/var/www/html';
-$index_path			= str_replace($index_file, '', $_SERVER['SCRIPT_NAME']);
+$config['default_controller']	= 'rssreader';
+$config['protocol']				= 'http';
+$config['server_host']			= 'localhost';
+$config['index_file']			= 'index.php';
+$config['document_root']		= '/var/www/html';
+$config['index_path']			= str_replace($index_file, '', $_SERVER['SCRIPT_NAME']);
 
-$folders = array(
+$config['folders'] = array(
 				'controllersFolder'	=> 'controllers/',
 				'modelsFolder'		=> 'models/',
 				'viewsFolder'		=> 'views/',
@@ -15,10 +15,11 @@ $folders = array(
 				'helpersFolder'		=> 'helpers/'
 			);
 
-$database = array(
+$config['database'] = array(
 				'dbhost'			=> 'localhost',
 				'dbname'			=> 'rssreader',
 				'dbuser'			=> 'myuser',
 				'dbpass'			=> 'mypass'
 			);
 ?>
+

@@ -53,7 +53,9 @@
 			<ul class="display-menu" id="feed-contextmenu">
 				<li id="mark-as-read">Mark feed as read</li>
 				<li id="change-name">Change feed name</li>
-				<li id="update-feed">Update feed</li>
+				<? if ( $this->config->get('feed_updatable') == 'true' ): ?>
+					<li id="update-feed">Update feed</li>
+				<? endif; ?>
 				<li class="hr">&nbsp;</li>
 				<li id="unsubscribe">Unsubscribe</li>
 			</ul>

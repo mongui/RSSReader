@@ -239,8 +239,6 @@ $(document).ready(function(ev) {
 		if ( content.css('display') != 'block' )
 			content.html( content.html().replace("{content}", posts.posts['post-' + selPost.attr("href")].content) );
 
-
-
 		$('#post-list').animate({scrollTop: selPost.offset().top - $('#header').height()},'500');
 
 		content.slideToggle( 400, function() {
@@ -498,15 +496,23 @@ $(document).ready(function(ev) {
 		}
 
 		loader.fadeIn();
+
+		var prefData = {
+			timeformat:     $('#timeformat').val(),
+			language:       $('#language').val(),
+			curPassword:    curPassword,
+			newPassword:    newPassword
+		};
+
+		if ( typeof window.serverData == 'function' ) {
+			var moreData = serverData();
+			$.extend(prefData, moreData);
+		}
+
 		$.ajax({
 			type    : "POST",
 			url     : "preferences",
-			data    : {
-				timeformat:     $('#timeformat').val(),
-				language:       $('#language').val(),
-				curPassword:    curPassword,
-				newPassword:    newPassword
-			}
+			data    : prefData
 		}).done(function(msg) {
 			if ( msg === 'success' ) {
 				$("#success").text('Data saved.').fadeIn();
@@ -592,6 +598,7 @@ $(document).ready(function(ev) {
 	$(window).load(function(ev) {
 		getSeparator();
 		setSeparator(rss_sepwidth);
+		$('#post-list').show();
 		sep = null;
 
 		$("#wrapper").height( ($(window).height() - 75) );

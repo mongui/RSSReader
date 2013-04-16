@@ -6,8 +6,8 @@ if ( !function_exists('redirect'))
 	{
 		if ( !isset($uri) )
 		{
-			global $protocol, $server_host, $index_path;
-			$uri = $protocol . '://' . $server_host . $index_path;
+			global $config;
+			$uri = $config['protocol'] . '://' . $config['server_host'] . $config['index_path'];
 		}
 
 		header('Location: ' . $uri);
@@ -19,7 +19,7 @@ if ( !function_exists('site_url'))
 {
 	function site_url ( $uri = '' )
 	{
-		global $protocol, $server_host, $index_path;
-		return $protocol . '://' . $server_host . $index_path . $uri;
+		global $config;
+		return $config['protocol'] . '://' . $config['server_host'] . $config['index_path'] . $uri;
 	}
 }

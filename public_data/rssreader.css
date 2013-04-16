@@ -223,6 +223,7 @@ a { outline: none; }
 	border-top: 1px solid #DDDDDD;
 	height: 100%;
 	overflow: auto;
+	display: none;
 }
 
 .entries {
@@ -351,7 +352,7 @@ a { outline: none; }
 /**************************************************************************************************************************/
 
 .content-form {
-	width: 400px;
+	max-width: 500px;
 	margin: 25px auto;
 	border-radius: 5px;
 }
@@ -359,6 +360,10 @@ a { outline: none; }
 .content-form fieldset {
 	border-radius: 5px;
 	margin-bottom: 1em;
+}
+
+.content-form fieldset div {
+	clear: both;
 }
 
 .content-form legend {
@@ -369,7 +374,7 @@ a { outline: none; }
 	float: left;
 	text-align: right;
 	margin-right: 15px;
-	width: 130px;
+	width: 40%;
 	padding-top: 5px;
 	cursor: pointer;
 }
@@ -381,8 +386,11 @@ a { outline: none; }
 	border-radius: 5px;
 	padding: 5px 7px;
 	margin-top: 3px;
+	width: 45%;
 }
+
 .content-form input[type="file"] { opacity: 0; }
+.content-form input[type="checkbox"] { width: auto; }
 
 .content-form .submit-button { /* Taken from login.css->.button-submit */
 	float: right;

@@ -41,12 +41,12 @@ class Connections extends ModelBase
 		$dbdata->execute();
 	}
 
-	function feeds_not_uptated ( $seconds, $max_feeds = NULL )
+	function feeds_not_uptated ( $seconds, $max_feeds = 0 )
 	{
 		$seconds = time() - $seconds;
 
 		$limit = '';
-		if ( isset($max_feeds) )
+		if ( $max_feeds > 0 )
 			$limit = 'LIMIT ' . $max_feeds;
 
 		$sql = "
@@ -517,6 +517,51 @@ class Connections extends ModelBase
 
 		$dbdata = $this->conn->prepare($sql);
 		return $dbdata->execute();
+	}
+
+
+
+
+
+
+
+
+	function load_config ()
+	{
+		$sql = "SELECT * FROM config";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+
+		foreach ( $dbdata->fetchAll(PDO::FETCH_OBJ) as $conf )
+			$this->config->set($conf->param, $conf->value);
+	}
+
+	function save_config ( $data )
+	{
+		$sql = "UPDATE config SET value = CASE ";
+
+		foreach ( $data as $key => $value )
+		{
+			$this->config->set($key, $value);
+			$keys[] = "'$key'";
+			$sql .= "WHEN param = '$key' THEN '$value' ";
+		}
+
+		$keys = implode(',', $keys);
+		$sql .= "END WHERE param IN ($keys)";
+
+		try {
+			$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+		}
+		catch (PDOException $err) {
+			//print_r('Error: ' . $err . '');
+			echo 'error';
+			die();
+		}
 	}
 }
 
