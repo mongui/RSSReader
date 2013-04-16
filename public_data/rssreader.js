@@ -393,7 +393,10 @@ $(document).ready(function(ev) {
 		if ( searchForm.is(':visible') )
 			searchForm.hide();
 		else
+		{
 			searchForm.show();
+			$("#search-input").focus();
+		}
 	});
 
 	$('#submit-search').click( function() {
