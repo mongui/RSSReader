@@ -76,7 +76,13 @@ class Login extends ControllerBase
 		// Show the login form.
 		else
 		{
-			$this->load->view('login', NULL);
+			$data = array();
+
+			$this->load->helper('phone');
+			if ( is_phone() )
+				$data['is_phone'] = TRUE;
+
+			$this->load->view('login', $data);
 		}
 	}
 

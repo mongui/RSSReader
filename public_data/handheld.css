@@ -1,0 +1,53 @@
+body {
+	overflow: hidden;
+}
+
+#header {
+	display: none;
+}
+
+#feed-panel {
+	float: none;
+	width: 100%;
+}
+
+#wrapper {
+	height: 100%;
+	overflow: hidden !important;
+}
+
+#alt-logo {
+	background: url("images/logo.png") no-repeat scroll center top;
+	height: 50px;
+	display: block;
+}
+
+#separator {
+	float: none;
+	height: 30px;
+	width: 100%;
+	cursor: row-resize;
+}
+
+#post-list {
+	float: none;
+	width: 100%;
+	height: auto;
+}
+
+.entries .content .resize {
+	max-width: none;
+}
+
+.entry a.title {
+	height: 40px;
+}
+
+.entries .content img {
+	max-width: 100%;
+	height: 100%;
+}
+
+.entries .content iframe {
+	max-width: 100%;
+}

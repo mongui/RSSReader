@@ -31,7 +31,6 @@ body {
 
 #success {
 	background: #9EFCB3;
-
 	margin-left: -175px;
 	width: 350px;
 }
@@ -44,6 +43,7 @@ body {
 /* LOGIN BOX */
 
 .login {
+	max-width: 90%;
 	width: 350px;
 	height: 350px;
 	border: 1px solid #AAAAAA;
@@ -61,6 +61,7 @@ body {
 }
 
 /* LOGIN FORM */
+
 .input {
 	margin: 25px;
 }

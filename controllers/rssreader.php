@@ -20,7 +20,15 @@ class Rssreader extends ControllerBase
 	{
 		// Is the user logged?
 		if ( isset($_SESSION['id']) )
-			$this->load->view('main');
+		{
+			$data = array();
+
+			$this->load->helper('phone');
+			if ( is_phone() )
+				$data['is_phone'] = TRUE;
+
+			$this->load->view('main', $data);
+		}
 		// Send him to login form.
 		else
 			redirect( site_url('login') );
@@ -231,8 +239,9 @@ class Rssreader extends ControllerBase
 			}
 
 			$this->load->helper('time');
+			if ( isset($data->last_update) && $data->last_update <> '' )
+				$data->last_update = sql_timestamp_to_user_defined ($data->last_update, $_SESSION['timeformat']);
 
-			$data->last_update = sql_timestamp_to_user_defined ($data->last_update, $_SESSION['timeformat']);
 			foreach ($data->posts as $id => $val)
 				$data->posts[$id]->timestamp = sql_timestamp_to_user_defined ($val->timestamp, $_SESSION['timeformat']);
 

@@ -7,6 +7,10 @@
 	<script type="text/javascript" src="<?= site_url() ?>public_data/rssreader.js"></script>
 
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/rssreader.css" />
+	<? if ( isset($is_phone) ): ?>
+	<link rel="stylesheet" href="<?= site_url() ?>public_data/handheld.css" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<? endif; ?>
 	<!--[if IE]>
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/normalize.css" />
 	<![endif]-->
@@ -28,6 +32,7 @@
 
 	<div id="wrapper">
 		<div id="feed-panel">
+			<div id="alt-logo">&nbsp;</div>
 			<div id="add-feed"> <img src="<?= site_url() ?>/public_data/images/add_feed.gif" alt="Add feed" />Add Feed</div>
 			<form id="add-form" class="feed-panel-form">
 				<label for="feed-url">Feed URL:</label>
@@ -78,19 +83,19 @@
 			</li>
 		</ul>
 		<div id="feeddata-tmpl">
-			<a href="{feed_site}" class="feed-title" target="_blank">
-				{feed_name} &raquo;
+			<div class="feed-title">
+				<a href="{feed_site}" target="_blank">{feed_name} &raquo;</a>
 				<span class="feed-last-update">
 					Last update: {last_update}
 				</span>
-			</a>
+			</div>
 			<ul class="entries">
 			</ul>
 		</div>
 		<ul id="posts-tmpl">
 			<li class="entry">
 				<a href="{id_post}" class="title {readed}">
-					<span class="star {starred}" id="star1"></span>
+					<div class="star {starred}" id="star1"></div>
 					{title}
 					<span class="timestamp">{timestamp}</span>
 				</a>

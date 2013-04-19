@@ -107,6 +107,10 @@ a { outline: none; }
 	overflow: auto;
 }
 
+#alt-logo {
+	display: none;
+}
+
 #add-feed {
 	border: 1px solid #52A6FF;
 	border-radius: 5px;
@@ -240,6 +244,9 @@ a { outline: none; }
 	font-size: 1.285em;
 	padding: 6px;
 	display: block;
+}
+
+.feed-title a {
 	color: #000000;
 	text-decoration: none;
 }
@@ -286,6 +293,7 @@ a { outline: none; }
 	height: 16px;
 	width: 16px;
 	display: inline-block;
+	vertical-align: text-bottom;
 }
 
 .entries .star:hover {

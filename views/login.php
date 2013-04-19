@@ -10,6 +10,9 @@
 	<!--[if IE]>
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/normalize.css" />
 	<![endif]-->
+	<? if ( isset($is_phone) ): ?>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<? endif; ?>
 	<link rel="shortcut icon" href="<?= site_url() ?>public_data/favicon.ico" />
 </head>
 <body>

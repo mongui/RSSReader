@@ -82,7 +82,11 @@ $(document).ready(function(ev) {
 		selFeed = $(this);
 		selFeed.addClass('selected-feed');
 
-		loadPostlist(selFeed.attr("href"));
+		loadPostlist(selFeed.attr("href"), function() {
+			if ( $('#alt-logo').is(':visible') ) // For phones.
+				setVSeparator();
+		});
+
 		return false;
 	});
 
@@ -105,15 +109,25 @@ $(document).ready(function(ev) {
 		e.preventDefault();
 	});
 
-	$(document).on({
-		mouseenter: function() {
-			hoverFeed = $(this).attr("href");
-			$(this).children(".feed-menu").show();
-		},
-		mouseleave: function() {
-			$(this).children(".feed-menu").hide();
-		}
-	}, 'a.item_link');
+	if ( $('#alt-logo').is(':visible') ) { // For phones.
+		$(".feed-menu").css('display', 'block');
+
+		$(document).on("click", ".feed-menu", function() {
+				hoverFeed = $(this).parent().attr("href");
+				console.log(hoverFeed);
+			});
+	}
+	else {
+		$(document).on({
+			mouseenter: function() {
+				hoverFeed = $(this).attr("href");
+				$(this).children(".feed-menu").show();
+			},
+			mouseleave: function() {
+				$(this).children(".feed-menu").hide();
+			}
+		}, 'a.item_link');
+	}
 
 	$('#mark-as-read').click( function(e) {
 		if ( !isNaN(hoverFeed) ) {
@@ -166,7 +180,7 @@ $(document).ready(function(ev) {
 	/* END FEED LIST */
 
 	/* POST LIST */
-	function loadPostlist(feed) {
+	function loadPostlist(feed, callback) {
 		loader.fadeIn();
 
 		$.ajax({
@@ -190,32 +204,40 @@ $(document).ready(function(ev) {
 			feedTmpl = feedTmpl.replace("{last_update}", posts.last_update);
 			postlist.append(feedTmpl);
 
-			$.each(posts.posts, function(i, item) {
-				postsTmpl = postBase;
-				readed = (item.readed > 0) ? 'readed' : '';
-				starred = (item.starred > 0) ? 'starred' : '';
+			if ( posts.last_update === '' )
+				postlist.children('.feed-title').children('.feed-last-update').hide();
 
-				postsTmpl = postsTmpl.replace("{readed}", readed);
-				postsTmpl = postsTmpl.replace("{starred}", starred);
-				postsTmpl = postsTmpl.replace("{starred}", starred);
+			if ( typeof posts.posts !== 'undefined' ) {
+				$.each(posts.posts, function(i, item) {
+					postsTmpl = postBase;
+					readed = (item.readed > 0) ? 'readed' : '';
+					starred = (item.starred > 0) ? 'starred' : '';
 
-				postsTmpl = postsTmpl.replace("{id_post}", item.id_post);
-				postsTmpl = postsTmpl.replace("{title}", item.title);
-				postsTmpl = postsTmpl.replace("{timestamp}", item.timestamp);
-				postsTmpl = postsTmpl.replace("{url}", item.url);
-				postsTmpl = postsTmpl.replace("{title}", item.title);
+					postsTmpl = postsTmpl.replace("{readed}", readed);
+					postsTmpl = postsTmpl.replace("{starred}", starred);
+					postsTmpl = postsTmpl.replace("{starred}", starred);
 
-				if ( item.author != '' )
-					postsTmpl = postsTmpl.replace("{author}", item.author);
-				else
-					postsTmpl = postsTmpl.replace("{author}", 'Anonymous');
+					postsTmpl = postsTmpl.replace("{id_post}", item.id_post);
+					postsTmpl = postsTmpl.replace("{title}", item.title);
+					postsTmpl = postsTmpl.replace("{timestamp}", item.timestamp);
+					postsTmpl = postsTmpl.replace("{url}", item.url);
+					postsTmpl = postsTmpl.replace("{title}", item.title);
 
-				//postsTmpl = postsTmpl.replace("{content}", item.content);
-				postlist.children('.entries').append(postsTmpl);
-			});
+					if ( item.author != '' )
+						postsTmpl = postsTmpl.replace("{author}", item.author);
+					else
+						postsTmpl = postsTmpl.replace("{author}", 'Anonymous');
+
+					postlist.children('.entries').append(postsTmpl);
+				});
+			}
 
 			$('#post-list').animate({scrollTop: 0},'500');
 			loader.fadeOut();
+
+			if (typeof callback === 'function')
+				callback();
+
 		}).fail(function() {
 			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
@@ -572,8 +594,12 @@ $(document).ready(function(ev) {
 	/* SEPARATOR */
 	var sep = null;
 	$("#separator").mousedown(function(e) {
-		sep = getSeparator();
-		e.preventDefault();
+		if ( $('#alt-logo').is(':visible') ) // For phones.
+			setVSeparator();
+		else {
+			sep = getSeparator();
+			e.preventDefault();
+		}
 	});
 	$(document).mousemove(function(e) {
 		if ( sep ) { widthCookie = setSeparator(e); }
@@ -587,21 +613,38 @@ $(document).ready(function(ev) {
 	});
 
 	$(window).resize(function(e) {
-		getSeparator();
-		setSeparator(e);
-		sep = null;
-		$("#wrapper").height( ($(window).height() - 75) );// 70 from #header.height + 5
+		if ( $('#alt-logo').is(':visible') ) { // For phones.
+			feedPanelHeight = $(window).height() - 30; // 30 from #separator
+			if ( $('#post-list').is(':visible') )
+				$("#post-list").height( feedPanelHeight );
+			else
+				$("#feed-panel").height( feedPanelHeight );
+		}
+		else {
+			getSeparator();
+			setSeparator(e);
+			sep = null;
+			$("#wrapper").height( ($(window).height() - 75) );// 70 from #header.height + 5
+		}
 	});
 
 	var rss_sepwidth = readCookie('rss_sepwidth');
 	var widthCookie;
 	$(window).load(function(ev) {
-		getSeparator();
-		setSeparator(rss_sepwidth);
-		$('#post-list').show();
-		sep = null;
 
-		$("#wrapper").height( ($(window).height() - 75) );
+		if ( $('#alt-logo').is(':visible') ) { // For phones.
+			feedPanelHeight = $(window).height() - 30; // 30 from #separator
+			$("#feed-panel").height( feedPanelHeight );
+		}
+		else {
+			getSeparator();
+			setSeparator(rss_sepwidth);
+			$('#post-list').show();
+			sep = null;
+
+			$("#wrapper").height( ($(window).height() - 75) );
+		}
+
 	});
 	/* END SEPARATOR */
 });
@@ -627,6 +670,24 @@ function setSeparator(data) {
 	sep.p.width(wx);
 	sep.n.width(Math.floor(sep.dw - sep.w - sep.p.width() -8)); // -8 depends of borders, margins,...
 	return wx;
+}
+
+var feedPanelHeight;
+function setVSeparator() {
+	var togglePanel1;
+	var togglePanel2;
+	if ( $("#feed-panel").height() > 0 ) {
+			togglePanel1 = 0;
+			togglePanel2 = feedPanelHeight;
+	}
+	else {
+			togglePanel1 = feedPanelHeight;
+			togglePanel2 = 0;
+	}
+	$('#feed-panel').animate({ height: togglePanel1 }, 400);
+	$('#post-list').animate({ height: togglePanel2 }, 400, function() {
+		$('#post-list').toggle();
+	});
 }
 /* END SEPARATOR */
 
@@ -665,7 +726,7 @@ function manageFeed (send) {
 	});
 }
 
-function managePost (send) {
+function managePost(send) {
 	$.ajax({
 		type	: "POST",
 		url		: "managepost",
