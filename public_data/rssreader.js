@@ -83,7 +83,7 @@ $(document).ready(function(ev) {
 		selFeed.addClass('selected-feed');
 
 		loadPostlist(selFeed.attr("href"), function() {
-			if ( $('#alt-logo').is(':visible') ) // For phones.
+			if ( typeof isPhone != 'undefined' ) // For phones.
 				setVSeparator();
 		});
 
@@ -109,7 +109,7 @@ $(document).ready(function(ev) {
 		e.preventDefault();
 	});
 
-	if ( $('#alt-logo').is(':visible') ) { // For phones.
+	if ( typeof isPhone != 'undefined' ) { // For phones.
 		$(".feed-menu").css('display', 'block');
 
 		$(document).on("click", ".feed-menu", function() {
@@ -594,7 +594,7 @@ $(document).ready(function(ev) {
 	/* SEPARATOR */
 	var sep = null;
 	$("#separator").mousedown(function(e) {
-		if ( $('#alt-logo').is(':visible') ) // For phones.
+		if ( typeof isPhone != 'undefined' ) // For phones.
 			setVSeparator();
 		else {
 			sep = getSeparator();
@@ -613,7 +613,7 @@ $(document).ready(function(ev) {
 	});
 
 	$(window).resize(function(e) {
-		if ( $('#alt-logo').is(':visible') ) { // For phones.
+		if ( typeof isPhone != 'undefined' ) { // For phones.
 			feedPanelHeight = $(window).height() - 30; // 30 from #separator
 			if ( $('#post-list').is(':visible') )
 				$("#post-list").height( feedPanelHeight );
@@ -632,7 +632,7 @@ $(document).ready(function(ev) {
 	var widthCookie;
 	$(window).load(function(ev) {
 
-		if ( $('#alt-logo').is(':visible') ) { // For phones.
+		if ( typeof isPhone != 'undefined' ) { // For phones.
 			feedPanelHeight = $(window).height() - 30; // 30 from #separator
 			$("#feed-panel").height( feedPanelHeight );
 		}

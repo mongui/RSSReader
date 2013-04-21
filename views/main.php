@@ -10,6 +10,9 @@
 	<? if ( isset($is_phone) ): ?>
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/handheld.css" />
 	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<script>
+		var isPhone = true;
+	</script>
 	<? endif; ?>
 	<!--[if IE]>
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/normalize.css" />
