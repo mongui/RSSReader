@@ -84,14 +84,14 @@ class Connections extends ModelBase
 
 		if ( !isset($feed->id_feed) )
 		{
-			$newfeeddata = $this->get_feed_by_url($feed_url);
+			$feed_data = &$this->get_feed_by_url($feed_url, TRUE);
 
-			if ( isset($newfeeddata['name']) )
+			if ( isset($feed_data) )
 			{
 				// Adds to the feeds table.
-				$dbname				= preg_replace('/<[^>]*>/', '', $newfeeddata['name']);
-				$dbfavicon			= $newfeeddata['favicon'];
-				$dbsite				= $newfeeddata['site'];
+				$dbname				= preg_replace('/<[^>]*>/', '', $feed_data->get_title());
+				$dbfavicon			= 'http://g.etfv.co/' . urlencode($feed_data->get_link());
+				$dbsite				= $feed_data->get_link();
 				$dburl				= $feed_url;
 
 				$sql = "
@@ -212,7 +212,6 @@ class Connections extends ModelBase
 					LIMIT $max
 			";
 		}
-
 		elseif ( $user_id && $feed_id == 'search' && isset($search) )
 		{
 			$sql = "
@@ -233,9 +232,6 @@ class Connections extends ModelBase
 					LIMIT $max
 			";
 		}
-
-
-
 		elseif ( $user_id )
 		{
 			$sql = "
@@ -276,19 +272,54 @@ class Connections extends ModelBase
 			return FALSE;
 	}
 
-	function get_feed_by_url ( $url )
+	function &get_feed_by_url ( $url, $fast = FALSE )
 	{
 		$this->load->library('simplepie');
 
 		$this->simplepie->set_feed_url($url);
-		$this->simplepie->set_stupidly_fast(true);
+
+		if ( $fast )
+			$this->simplepie->set_stupidly_fast(true);
+
+		// This allows Youtube videos.
+		$strip_htmltags = $this->simplepie->strip_htmltags;
+		unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
+		$this->simplepie->strip_htmltags($strip_htmltags);
+
 		$this->simplepie->init();
 		$this->simplepie->handle_content_type();
-		return array(
-					'name'			=> $this->simplepie->get_title(),
-					'favicon'		=> 'http://g.etfv.co/' . urlencode($this->simplepie->get_link()),
-					'site'			=> $this->simplepie->get_link()
-					);
+
+		// If RSS is malformed.
+		if ( $this->simplepie->error() )
+		{
+			unset ($this->simplepie);
+			$this->simplepie = new SimplePie();
+			$file = fopen($url, 'r');
+			$content = stream_get_contents($file);
+
+			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
+			$replacements = array('á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ');
+
+			$convmap = array(0x0, 0x10000, 0, 0xfffff);
+			$content = mb_decode_numericentity($content, $convmap, 'UTF-8');
+
+			$content = preg_replace('/(?!&[a-z]{2,6};)(&)/', '&amp;', $content);
+			$content = str_replace($patterns, $replacements, $content);
+
+			$content = preg_replace('/(<script.+?>)(<\/script>)/i', '', $content);
+			$content = preg_replace('/<script.+?\/>/i', '', $content);
+
+			$this->simplepie->set_raw_data($content);
+
+			// This allows Youtube videos.
+			$strip_htmltags = $this->simplepie->strip_htmltags;
+			unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
+			$this->simplepie->set_input_encoding('UTF-8');
+			$this->simplepie->init();
+			$this->simplepie->handle_content_type();
+		}
+
+		return $this->simplepie;
 	}
 
 	function update_feed ( $feed_id )
@@ -306,47 +337,11 @@ class Connections extends ModelBase
 			$lp_title		= '';
 		}
 
-		$this->load->library('simplepie');
 		$feed = $this->feed_data_from_id ($feed_id);
 
-		$this->simplepie->set_feed_url($feed->url);
+		$feed_data = &$this->get_feed_by_url($feed->url);
 
-		// This allows Youtube videos.
-		$strip_htmltags = $this->simplepie->strip_htmltags;
-		unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
-		$this->simplepie->strip_htmltags($strip_htmltags);
-
-		$this->simplepie->init();
-		$this->simplepie->handle_content_type();
-
-		// If RSS is malformed.
-		if ( $this->simplepie->error() )
-		{
-			unset ($this->simplepie);
-			$this->simplepie = new SimplePie();
-			$file = fopen($feed->url, 'r');
-			$content = stream_get_contents($file);
-
-			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
-			$replacements = array('á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ');
-
-			$convmap = array(0x0, 0x10000, 0, 0xfffff);
-			$content = mb_decode_numericentity($content, $convmap, 'UTF-8');
-
-			$content = preg_replace('/(?!&[a-z]{2,6};)(&)/', '&amp;', $content);
-			$content = str_replace($patterns, $replacements, $content);
-
-			$this->simplepie->set_raw_data($content);
-
-			// This allows Youtube videos.
-			$strip_htmltags = $this->simplepie->strip_htmltags;
-			unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
-			$this->simplepie->set_input_encoding('UTF-8');
-			$this->simplepie->init();
-			$this->simplepie->handle_content_type();
-		}
-
-		foreach ( $this->simplepie->get_items() as $item )
+		foreach ( $feed_data->get_items() as $item )
 		{
 			if ( $item->get_authors() )
 				foreach ( $item->get_authors() as $auth )
@@ -518,13 +513,6 @@ class Connections extends ModelBase
 		$dbdata = $this->conn->prepare($sql);
 		return $dbdata->execute();
 	}
-
-
-
-
-
-
-
 
 	function load_config ()
 	{

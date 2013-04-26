@@ -35,7 +35,6 @@
 
 	<div id="wrapper">
 		<div id="feed-panel">
-			<div id="alt-logo">&nbsp;</div>
 			<div id="add-feed"> <img src="<?= site_url() ?>/public_data/images/add_feed.gif" alt="Add feed" />Add Feed</div>
 			<form id="add-form" class="feed-panel-form">
 				<label for="feed-url">Feed URL:</label>

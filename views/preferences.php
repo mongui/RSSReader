@@ -4,9 +4,6 @@
 		var language = '<?= $_SESSION['language'] ?>';
 	</script>
 
-    <div id="error" class="info"></div>
-    <div id="success" class="info"></div>
-
 	<fieldset>
 		<legend>Your preferences</legend>
 		<div class="input">

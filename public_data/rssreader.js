@@ -1,17 +1,24 @@
-$(document).ready(function(ev) {
+var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, hoverFeed, unreaded;
 
-	var loader = $("#loader");
-	var feeds, posts, selFeed, selPost, hoverFeed, unreaded;
+$(document).ready(function(ev) {
+	loader		= $("#loader");
+	error		= $("#error");
+	success		= $("#success");
+	header		= $('#header');
+	feedPanel	= $("#feed-panel");
+	feedList	= $("#feed-list");
+	postList	= $("#post-list");
+	separator	= $("#separator");
 
 	/* FEED LIST  */
 	updateFeedlist();
-	setInterval( function()	{ updateFeedlist(); }, 300000);
+	setInterval( function() { updateFeedlist(); }, 300000);
 
 	$('.list-title').click( function() {
 		var title = $(this);
 		var list = $(this).next(".list-content");
 		list.slideToggle( 400, function() {
-			if( list.is(':visible') )
+			if ( list.is(':visible') )
 				title.children('div').removeClass('hidden');
 			else
 				title.children('div').addClass('hidden');
@@ -24,7 +31,10 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist('unreaded');
+		loadPostlist('unreaded', function() {
+			if ( typeof isPhone != 'undefined' ) // For phones.
+				setVSeparator();
+		});
 		loader.fadeOut();
 		return false;
 	});
@@ -35,7 +45,10 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist('starred');
+		loadPostlist('starred', function() {
+			if ( typeof isPhone != 'undefined' ) // For phones.
+				setVSeparator();
+		});
 		loader.fadeOut();
 		return false;
 	});
@@ -49,8 +62,7 @@ $(document).ready(function(ev) {
 			url     : "feeds"
 		}).done(function(flist) {
 			feeds = flist;
-			var feedlist = $("#feed-list");
-			feedlist.html('');
+			feedList.html('');
 			unreaded = 0;
 
 			var feedsBase = $("#feeds-tmpl").html();
@@ -59,19 +71,31 @@ $(document).ready(function(ev) {
 			$.each(feeds, function(i, item) {
 				feedsTmpl = feedsBase;
 
-				feedsTmpl = feedsTmpl.replace("{id_feed}", item.id_feed);
-				feedsTmpl = feedsTmpl.replace("{favicon}", '<img src="' + item.favicon + '" alt="' + feeds[i].name + '" />');
-				feedsTmpl = feedsTmpl.replace("{name}", item.name);
-				feedsTmpl = feedsTmpl.replace("{not_readed}", ( item.count > 0 ) ? 'not-readed' : '');
-				feedsTmpl = feedsTmpl.replace("{count}", ( item.count > 0 ) ? '(' + item.count + ')' : '');
+				feedsTmpl = feedsTmpl
+					.replace("{id_feed}", item.id_feed)
+					.replace("{favicon}", '<img src="' + item.favicon + '" alt="' + feeds[i].name + '" />')
+					.replace("{name}", item.name)
+					.replace("{not_readed}", ( item.count > 0 ) ? 'not-readed' : '')
+					.replace("{count}", ( item.count > 0 ) ? '(' + item.count + ')' : '');
 				unreaded = unreaded + parseInt(item.count);
 
-				feedlist.append(feedsTmpl);
+				feedList.append(feedsTmpl);
 			});
+
+			if ( selFeed ) {
+				var prevSelected = selFeed.attr("href");
+				$.each(feedList.children('li'), function(i, item) {
+					if ( $(item.children[0]).attr('href') == prevSelected ) {
+						selFeed = $(item.children[0]);
+						selFeed.addClass('selected-feed');
+					}
+				});
+			}
+
 			$('title').html('RSS Reader (' + unreaded + ')');
 			loader.fadeOut();
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	}
@@ -79,8 +103,7 @@ $(document).ready(function(ev) {
 	$(document).on("click", "a.item_link", function() {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
-		selFeed = $(this);
-		selFeed.addClass('selected-feed');
+		selFeed = $(this).addClass('selected-feed');
 
 		loadPostlist(selFeed.attr("href"), function() {
 			if ( typeof isPhone != 'undefined' ) // For phones.
@@ -98,7 +121,7 @@ $(document).ready(function(ev) {
 		var y = $(this).offset().top + $(this).outerHeight();
 
 		var a = y + fcHeight;
-		var b = $('#feed-panel').offset().top + $('#feed-panel').outerHeight() ;
+		var b = feedPanel.offset().top + feedPanel.outerHeight() ;
 
 		if ( a > b )
 			y = $(this).offset().top - fcHeight;
@@ -110,12 +133,9 @@ $(document).ready(function(ev) {
 	});
 
 	if ( typeof isPhone != 'undefined' ) { // For phones.
-		$(".feed-menu").css('display', 'block');
-
 		$(document).on("click", ".feed-menu", function() {
-				hoverFeed = $(this).parent().attr("href");
-				console.log(hoverFeed);
-			});
+			hoverFeed = $(this).parent().attr("href");
+		});
 	}
 	else {
 		$(document).on({
@@ -129,7 +149,7 @@ $(document).ready(function(ev) {
 		}, 'a.item_link');
 	}
 
-	$('#mark-as-read').click( function(e) {
+	$('#mark-as-read').click( function() {
 		if ( !isNaN(hoverFeed) ) {
 			var send = {
 				feed    : hoverFeed,
@@ -137,7 +157,7 @@ $(document).ready(function(ev) {
 			};
 			feeds = manageFeed(send);
 
-			updateFeedlist(feeds);
+			updateFeedlist();
 		}
 	});
 
@@ -149,7 +169,7 @@ $(document).ready(function(ev) {
 			};
 			feeds = manageFeed(send);
 
-			updateFeedlist(feeds);
+			updateFeedlist();
 		}
 	});
 
@@ -162,7 +182,7 @@ $(document).ready(function(ev) {
 			};
 			feeds = manageFeed(send);
 
-			updateFeedlist(feeds);
+			updateFeedlist();
 		}
 	});
 
@@ -174,7 +194,7 @@ $(document).ready(function(ev) {
 			};
 			feeds = manageFeed(send);
 
-			updateFeedlist(feeds);
+			updateFeedlist();
 		}
 	});
 	/* END FEED LIST */
@@ -194,18 +214,17 @@ $(document).ready(function(ev) {
 			posts = plist;
 			var feedTmpl = $("#feeddata-tmpl").html();
 			var postBase = $("#posts-tmpl").html();
-			var postlist = $("#post-list");
+			postList.html('');
 			var postsTmpl, readed, starred;
 
-			postlist.html('');
-
-			feedTmpl = feedTmpl.replace("{feed_site}", posts.site);
-			feedTmpl = feedTmpl.replace("{feed_name}", posts.name);
-			feedTmpl = feedTmpl.replace("{last_update}", posts.last_update);
-			postlist.append(feedTmpl);
+			feedTmpl = feedTmpl
+				.replace("{feed_site}", posts.site)
+				.replace("{feed_name}", posts.name)
+				.replace("{last_update}", posts.last_update);
+			postList.append(feedTmpl);
 
 			if ( posts.last_update === '' )
-				postlist.children('.feed-title').children('.feed-last-update').hide();
+				postList.children('.feed-title').children('.feed-last-update').hide();
 
 			if ( typeof posts.posts !== 'undefined' ) {
 				$.each(posts.posts, function(i, item) {
@@ -213,33 +232,30 @@ $(document).ready(function(ev) {
 					readed = (item.readed > 0) ? 'readed' : '';
 					starred = (item.starred > 0) ? 'starred' : '';
 
-					postsTmpl = postsTmpl.replace("{readed}", readed);
-					postsTmpl = postsTmpl.replace("{starred}", starred);
-					postsTmpl = postsTmpl.replace("{starred}", starred);
+					postsTmpl = postsTmpl
+						.replace("{readed}", readed)
+						.replace("{starred}", starred)
+						.replace("{starred}", starred)
 
-					postsTmpl = postsTmpl.replace("{id_post}", item.id_post);
-					postsTmpl = postsTmpl.replace("{title}", item.title);
-					postsTmpl = postsTmpl.replace("{timestamp}", item.timestamp);
-					postsTmpl = postsTmpl.replace("{url}", item.url);
-					postsTmpl = postsTmpl.replace("{title}", item.title);
+						.replace("{id_post}", item.id_post)
+						.replace("{title}", item.title)
+						.replace("{timestamp}", item.timestamp)
+						.replace("{url}", item.url)
+						.replace("{title}", item.title)
 
-					if ( item.author != '' )
-						postsTmpl = postsTmpl.replace("{author}", item.author);
-					else
-						postsTmpl = postsTmpl.replace("{author}", 'Anonymous');
+						.replace("{author}", ( item.author != '' ) ? item.author : 'Anonymous');
 
-					postlist.children('.entries').append(postsTmpl);
+					postList.children('.entries').append(postsTmpl);
 				});
 			}
 
-			$('#post-list').animate({scrollTop: 0},'500');
+			postList.animate({scrollTop: 0},'500', function() {
+				if (typeof callback === 'function')
+					callback();
+			});
 			loader.fadeOut();
-
-			if (typeof callback === 'function')
-				callback();
-
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	}
@@ -247,8 +263,7 @@ $(document).ready(function(ev) {
 	$(document).on("click", "a.title", function(e) {
 		if ( selPost )
 			selPost.removeClass('selected-post');
-		selPost = $(this);
-		selPost.addClass('selected-post');
+		selPost = $(this).addClass('selected-post');
 
 		var content = $(this).next("div.content");
 
@@ -261,7 +276,7 @@ $(document).ready(function(ev) {
 		if ( content.css('display') != 'block' )
 			content.html( content.html().replace("{content}", posts.posts['post-' + selPost.attr("href")].content) );
 
-		$('#post-list').animate({scrollTop: selPost.offset().top - $('#header').height()},'500');
+		postList.animate({scrollTop: selPost.offset().top - header.height()}, '500');
 
 		content.slideToggle( 400, function() {
 			if ( content.css('display') == 'block' && !$(this).prev().hasClass('readed') ) {
@@ -277,17 +292,17 @@ $(document).ready(function(ev) {
 				$(this).parents('.entry').children('.content').children('.post-manager').children('.read').removeClass('unread');
 
 				$.each(feeds, function(i, item) {
-
 					if ( item.id_feed == selFeed.attr("href")) {
 						feeds[i].count = item.count - 1;
 						unreaded--;
 
 						var replaceFeedData = $("#feeds-tmpl").children('li').html();
-						replaceFeedData = replaceFeedData.replace("{id_feed}", feeds[i].id_feed);
-						replaceFeedData = replaceFeedData.replace("{favicon}", '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" />');
-						replaceFeedData = replaceFeedData.replace("{name}", feeds[i].name);
-						replaceFeedData = replaceFeedData.replace("{not_readed}", ( feeds[i].count > 0 ) ? 'not-readed' : '');
-						replaceFeedData = replaceFeedData.replace("{count}", ( feeds[i].count > 0 ) ? '(' + feeds[i].count + ')' : '');
+						replaceFeedData = replaceFeedData
+							.replace("{id_feed}", feeds[i].id_feed)
+							.replace("{favicon}", '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" />')
+							.replace("{name}", feeds[i].name)
+							.replace("{not_readed}", ( feeds[i].count > 0 ) ? 'not-readed' : '')
+							.replace("{count}", ( feeds[i].count > 0 ) ? '(' + feeds[i].count + ')' : '');
 
 						$("#feed-list a[href='" + selFeed.attr("href") + "']").parent().html(replaceFeedData);
 					}
@@ -309,13 +324,15 @@ $(document).ready(function(ev) {
 
 		if ( $(this).hasClass('unread') ) {
 			send.state = 1;
-			$(this).removeClass('unread');
-			$(this).parents('.entry').children('.title').addClass('readed');
+			$(this)
+				.removeClass('unread')
+				.parents('.entry').children('.title').addClass('readed');
 		}
 		else {
 			send.state = 0;
-			$(this).addClass('unread');
-			$(this).parents('.entry').children('.title').removeClass('readed');
+			$(this)
+				.addClass('unread')
+				.parents('.entry').children('.title').removeClass('readed');
 
 		}
 		managePost (send);
@@ -330,19 +347,17 @@ $(document).ready(function(ev) {
 
 		if ( $(this).hasClass('starred') ) {
 			send.state = 0;
-			$(this).removeClass('starred');
-			$(this).parents('.entry').children('.content').children('.post-manager').children('#star2').removeClass('starred');
+			$(this)
+				.removeClass('starred')
+				.parents('.entry').children('.content').children('.post-manager').children('#star2').removeClass('starred');
 		}
 		else {
 			send.state = 1;
-			$(this).addClass('starred');
-			$(this).parents('.entry').children('.content').children('.post-manager').children('#star2').addClass('starred');
+			$(this)
+				.addClass('starred')
+				.parents('.entry').children('.content').children('.post-manager').children('#star2').addClass('starred');
 		}
-
 		managePost (send);
-
-		e.stopPropagation();
-		e.preventDefault();
 	});
 
 	$(document).on("click", "#star2", function(e) {
@@ -354,32 +369,41 @@ $(document).ready(function(ev) {
 
 		if ( $(this).hasClass('starred') ) {
 			send.state = 0;
-			$(this).removeClass('starred');
-			 $(this).parents('.entry').children('a').children('#star1').removeClass('starred');
+			$(this)
+			.removeClass('starred')
+			.parents('.entry').children('a').children('#star1').removeClass('starred');
 		}
 		else {
 			send.state = 1;
-			$(this).addClass('starred');
-			 $(this).parents('.entry').children('a').children('#star1').addClass('starred');
+			$(this)
+				.addClass('starred')
+				.parents('.entry').children('a').children('#star1').addClass('starred');
 		}
-
 		managePost (send);
 	});
 	/* END POST LIST */
 
 	/* ADD FEED FORM */
 	$('#add-feed').click( function() {
-		var addForm = $("#add-form");
+		var addForm = $(this).next("#add-form");
 
 		if ( addForm.is(':visible') )
 			addForm.hide();
 		else {
-			var addFeed = $("#add-feed");
-
-			addForm.css('left', addFeed.offset().left + addFeed.outerWidth() + 5);
-			addForm.css('top', addFeed.offset().top);
-
-			addForm.show();
+			if ( typeof isPhone != 'undefined' ) { // For phones.
+				addForm.children("label").hide();
+				addForm
+					.css('max-width', '90%')
+					.show()
+					.children("#feed-url").focus();
+			}
+			else {
+				addForm
+					.css('left', $(this).offset().left + $(this).outerWidth() + 5)
+					.css('top', $(this).offset().top)
+					.show()
+					.children("#feed-url").focus();
+			}
 		}
 	});
 
@@ -395,10 +419,10 @@ $(document).ready(function(ev) {
 			$("#add-form").hide();
 			updateFeedlist();
 
-			$("#success").text('The feed was successfully added.').fadeIn();
+			success.text('The feed was successfully added.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
@@ -415,7 +439,7 @@ $(document).ready(function(ev) {
 		else
 		{
 			searchForm.show();
-			$("#search-input").focus();
+			searchForm.children("#search-input").focus();
 		}
 	});
 
@@ -425,7 +449,10 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist( $('#search-input').val() );
+		loadPostlist($('#search-input').val(), function() {
+			if ( typeof isPhone != 'undefined' ) // For phones.
+				setVSeparator();
+		});
 		$("#search-form").hide();
 
 		loader.fadeOut();
@@ -440,6 +467,7 @@ $(document).ready(function(ev) {
 		var y = $(this).offset().top + $(this).outerHeight();
 
 		displayMenuToggle( $(this).next(".display-menu"), x , y );
+
 		e.stopPropagation();
 	});
 
@@ -457,8 +485,9 @@ $(document).ready(function(ev) {
 		if ( element ) {
 			displayMenu = element;
 			if ( x && y ) {
-				displayMenu.css('right', x);
-				displayMenu.css('top', y);
+				displayMenu
+					.css('right', x)
+					.css('top', y);
 			}
 
 			displayMenu.show();
@@ -472,22 +501,23 @@ $(document).ready(function(ev) {
 		$.ajax({
 			type    : "GET",
 			url     : "preferences"
-		}).done(function(msg) {
-			$("#post-list").html(msg);
+		}).done(function(form) {
+			postList.html(form);
 
 			$("#timeformat").val(timeformat);
 			$("#language").val(language);
 
+			if ( typeof isPhone != 'undefined' ) // For phones.
+				setVSeparator();
+
 			loader.fadeOut();
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	});
 
 	$(document).on("click", "#submit-preferences", function(e) {
-		var error = $("#error");
-		var success = $("#success");
 		error.fadeOut();
 		success.fadeOut();
 		loader.fadeOut();
@@ -498,18 +528,15 @@ $(document).ready(function(ev) {
 
 		if ( newPassword != '' || newPassword2 != '' ) {
 			if ( newPassword.length < 6 ) {
-				error.text('Your password must be at least 6 characters.');
-				error.fadeIn();
+				error.text('Your password must be at least 6 characters.').fadeIn();
 				return false;
 			}
 			else if ( newPassword !== newPassword2 ) {
-				error.text('Passwords do not match.');
-				error.fadeIn();
+				error.text('Passwords do not match.').fadeIn();
 				return false;
 			}
 			else if ( curPassword === '' ) {
-				error.text('We need your current password to verify your identity.');
-				error.fadeIn();
+				error.text('We need your current password to verify your identity.').fadeIn();
 				return false;
 			}
 			else {
@@ -537,21 +564,19 @@ $(document).ready(function(ev) {
 			data    : prefData
 		}).done(function(msg) {
 			if ( msg === 'success' ) {
-				$("#success").text('Data saved.').fadeIn();
-				setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+				success.text('Data saved.').fadeIn();
 			}
 			else if ( msg === 'curPass' ) {
-				$("#error").text('Your current password is not correct.').fadeIn();
-				setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+				error.text('Your current password is not correct.').fadeIn();
 			}
 			else {
-				$("#error").text('Something wrong happened. We can\'t save your preferences now. Sorry.').fadeIn();
-				setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+				error.text('Something wrong happened. We can\'t save your preferences now. Sorry.').fadeIn();
 			}
+			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
-			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 		return false;
 	});
@@ -561,12 +586,14 @@ $(document).ready(function(ev) {
 		$.ajax({
 			type    : "GET",
 			url     : "importfile"
-		}).done(function(msg) {
-			$("#post-list").html(msg);
+		}).done(function(form) {
+			postList.html(form);
+			if ( typeof isPhone != 'undefined' ) // For phones.
+				setVSeparator();
 			loader.fadeOut();
 		}).fail(function() {
-			$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
-			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 	});
 	/* END PREFERENCES MENU */
@@ -585,9 +612,39 @@ $(document).ready(function(ev) {
 	});
 
 	$(document).on("click", "#submit-file", function() {
+		loader.fadeIn();
+		if ( $("#import-file").val() == '' ) {
+			error.text('Select a file first.').fadeIn();
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+			return false;
+		}
+
 		$('#import-form').submit(function() {
-		//alert('Handler for .submit() called.');
-		});
+			var subForm = $('#submited-form');
+			var count = 0;
+			var subInt = self.setInterval(function() {
+				if ( $.trim(subForm.contents().find('body').html()) == 'success' ) {
+					subInt = window.clearInterval(subInt);
+					success.text('File successfully uploaded.').fadeIn();
+					setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+					updateFeedlist();
+				}
+				else if ( $.trim(subForm.contents().find('body').html()) == 'failure' ) {
+					subInt = window.clearInterval(subInt);
+					error.text('The file you tried to upload is not compatible.').fadeIn();
+					setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+				}
+				else {
+					if ( count >= 15 ) {
+						subInt = window.clearInterval(subInt);
+						error.text('Something wrong happened. We can\'t upload your file now. Sorry.').fadeIn();
+						setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+					}
+
+					count++;
+				}
+			}, 1000);
+		})
 	});
 	/* END IMPORT OPML FILE FORM */
 
@@ -615,10 +672,6 @@ $(document).ready(function(ev) {
 	$(window).resize(function(e) {
 		if ( typeof isPhone != 'undefined' ) { // For phones.
 			feedPanelHeight = $(window).height() - 30; // 30 from #separator
-			if ( $('#post-list').is(':visible') )
-				$("#post-list").height( feedPanelHeight );
-			else
-				$("#feed-panel").height( feedPanelHeight );
 		}
 		else {
 			getSeparator();
@@ -631,15 +684,13 @@ $(document).ready(function(ev) {
 	var rss_sepwidth = readCookie('rss_sepwidth');
 	var widthCookie;
 	$(window).load(function(ev) {
-
 		if ( typeof isPhone != 'undefined' ) { // For phones.
 			feedPanelHeight = $(window).height() - 30; // 30 from #separator
-			$("#feed-panel").height( feedPanelHeight );
 		}
 		else {
 			getSeparator();
 			setSeparator(rss_sepwidth);
-			$('#post-list').show();
+			postList.show();
 			sep = null;
 
 			$("#wrapper").height( ($(window).height() - 75) );
@@ -651,13 +702,12 @@ $(document).ready(function(ev) {
 
 /* SEPARATOR */
 function getSeparator() {
-	block = $("#separator");
 	return sep = {
-		w : block.width(),
-		p : block.prev(),
-		n : block.next(),
+		w : separator.width(),
+		p : separator.prev(),
+		n : separator.next(),
 		dw: $(document).width(),
-		pw: block.prev().width()
+		pw: separator.prev().width()
 	};
 }
 
@@ -676,18 +726,19 @@ var feedPanelHeight;
 function setVSeparator() {
 	var togglePanel1;
 	var togglePanel2;
-	if ( $("#feed-panel").height() > 0 ) {
-			togglePanel1 = 0;
-			togglePanel2 = feedPanelHeight;
+
+	if ( feedPanel.height() > 0 ) {
+		togglePanel1 = 0;
+		togglePanel2 = feedPanelHeight;
+		separator.animate({ bottom: feedPanelHeight }, 400);
 	}
 	else {
-			togglePanel1 = feedPanelHeight;
-			togglePanel2 = 0;
+		togglePanel1 = '100%';
+		togglePanel2 = 0;
+		separator.animate({ bottom: 0 }, 400);
 	}
-	$('#feed-panel').animate({ height: togglePanel1 }, 400);
-	$('#post-list').animate({ height: togglePanel2 }, 400, function() {
-		$('#post-list').toggle();
-	});
+	feedPanel.animate({ height: togglePanel1 }, 400);
+	postList.animate({ height: togglePanel2 }, 400);
 }
 /* END SEPARATOR */
 
@@ -721,7 +772,7 @@ function manageFeed (send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+		error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }
@@ -734,7 +785,7 @@ function managePost(send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		$("#error").text('Can\'t reach the server. Please, try again later.').fadeIn();
+		error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }

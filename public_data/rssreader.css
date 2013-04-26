@@ -42,7 +42,7 @@ a { outline: none; }
 }
 
 #header {
-	background: url("images/logo.png") no-repeat scroll 1.5em center;
+	background: url("images/logo.png") no-repeat scroll 15px center;
 	height: 70px;
 	overflow: hidden;
 }
@@ -52,7 +52,7 @@ a { outline: none; }
 	border: 1px solid #52A6FF;
 	border-radius: 5px;
 	float: right;
-	margin: 20px;
+	margin: 20px 15px;
 	padding: 8px 20px 8px 10px;
 	cursor: pointer;
 }
@@ -105,10 +105,6 @@ a { outline: none; }
 	float: left;
 	height: 100%;
 	overflow: auto;
-}
-
-#alt-logo {
-	display: none;
 }
 
 #add-feed {
@@ -221,9 +217,20 @@ a { outline: none; }
 
 /**************************************************************************************************************************/
 
+#welcome-fieldset {
+	margin: 1% !important;
+	padding: 20px 30px;
+}
+
+#welcome-fieldset img {
+	float: right;
+	margin-left: 20px;
+}
+
+/**************************************************************************************************************************/
+
 #post-list {
 	float: right;
-
 	border-top: 1px solid #DDDDDD;
 	height: 100%;
 	overflow: auto;
@@ -365,6 +372,7 @@ a { outline: none; }
 	border-radius: 5px;
 }
 
+#welcome-fieldset,
 .content-form fieldset {
 	border-radius: 5px;
 	margin-bottom: 1em;
@@ -399,6 +407,7 @@ a { outline: none; }
 
 .content-form input[type="file"] { opacity: 0; }
 .content-form input[type="checkbox"] { width: auto; }
+#submited-form { display: none; }
 
 .content-form .submit-button { /* Taken from login.css->.button-submit */
 	float: right;

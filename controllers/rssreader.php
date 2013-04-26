@@ -72,8 +72,12 @@ class Rssreader extends ControllerBase
 
 			if( !empty($feed_url) )
 			{
-				$this->add_feed($feed_url);
-				echo 'success';
+				$feed_id = $this->add_feed($feed_url);
+
+				if ( $feed_id > 0 )
+					echo 'success';
+				else
+					echo 'error';
 			}
 		}
 		else
@@ -101,6 +105,7 @@ class Rssreader extends ControllerBase
 				else
 				{
 					if (file_exists($_FILES["file"]["tmp_name"])) {
+						error_reporting(E_ERROR);
 						$xml = simplexml_load_file($_FILES["file"]["tmp_name"]);
 
 						foreach ( $xml->body->outline as $feed )
@@ -108,6 +113,7 @@ class Rssreader extends ControllerBase
 							$this->add_feed(filter_var($feed['xmlUrl'], FILTER_SANITIZE_STRING));
 						}
 
+						echo 'success';
 					}
 					else
 					{

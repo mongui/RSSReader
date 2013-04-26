@@ -1,25 +1,12 @@
-body {
-	overflow: hidden;
-}
-
-#header {
-	display: none;
-}
-
 #feed-panel {
 	float: none;
 	width: 100%;
+	height: 100%;
+	padding-bottom: 35px;
 }
 
 #wrapper {
 	height: 100%;
-	overflow: hidden !important;
-}
-
-#alt-logo {
-	background: url("images/logo.png") no-repeat scroll center top;
-	height: 50px;
-	display: block;
 }
 
 #separator {
@@ -27,12 +14,20 @@ body {
 	height: 30px;
 	width: 100%;
 	cursor: row-resize;
+	position: fixed;
+	bottom: 0;
+	z-index: 1;
 }
 
 #post-list {
 	float: none;
 	width: 100%;
-	height: auto;
+	height: 0;
+	display: block;
+
+	position: fixed;
+	bottom: 0;
+	background-color: #FFFFFF;
 }
 
 .entries .content .resize {
@@ -50,4 +45,12 @@ body {
 
 .entries .content iframe {
 	max-width: 100%;
+}
+
+.feed-menu {
+	display: block !important;
+}
+
+.feed-last-update {
+	display: none;
 }
