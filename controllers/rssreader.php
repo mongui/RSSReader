@@ -165,7 +165,8 @@ class Rssreader extends ControllerBase
 								'timezone'					=> filter_var($_POST['timezone'], FILTER_SANITIZE_STRING),
 								'minutes_between_updates'	=> filter_var($_POST['mins_updates'], FILTER_VALIDATE_INT),
 								'max_feeds_per_update'		=> filter_var($_POST['max_feeds'], FILTER_VALIDATE_INT),
-								'feed_updatable'			=> ( $_POST['feed_updatable'] == 1 ) ? 'true' : 'false'
+								'show_favicons'				=> ( $_POST['show_favicons']  ) ? $_POST['show_favicons']  : 'false',
+								'feed_updatable'			=> ( $_POST['feed_updatable'] ) ? $_POST['feed_updatable'] : 'false'
 							);
 
 				$this->connections->save_config($serverdata);
@@ -196,13 +197,14 @@ class Rssreader extends ControllerBase
 
 	public function feeds()
 	{
-		$feedlist = $this->connections->feeds_per_user($_SESSION['id']);
+		$feedlist = $this->connections->feeds_per_user($_SESSION['id'], $this->config->get('show_favicons'));
 		echo json_encode($feedlist);
 	}
 
 	public function posts()
 	{
 		$feed_id = filter_var($_POST["feed"], FILTER_SANITIZE_STRING);
+		$feed_next = ( isset($_POST["next"]) ) ? filter_var($_POST["next"], FILTER_SANITIZE_NUMBER_INT) : 0;
 
 		if ( !is_numeric($feed_id) && $feed_id <> 'unreaded' && $feed_id <> 'starred' )
 		{
@@ -231,7 +233,7 @@ class Rssreader extends ControllerBase
 
 		if ( !empty($data) )
 		{
-			$posts = $this->connections->posts_from_feed($feed_id, 50, $_SESSION['id'], $search_string);
+			$posts = $this->connections->posts_from_feed($feed_id, $feed_next, $_SESSION['id'], $search_string);
 
 			if ( $posts )
 			{

@@ -1,4 +1,4 @@
-var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, hoverFeed, unreaded;
+var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, hoverFeed, unreaded, killScroll, lastSelFeed;
 
 $(document).ready(function(ev) {
 	loader		= $("#loader");
@@ -9,6 +9,7 @@ $(document).ready(function(ev) {
 	feedList	= $("#feed-list");
 	postList	= $("#post-list");
 	separator	= $("#separator");
+	killScroll	= false;
 
 	/* FEED LIST  */
 	updateFeedlist();
@@ -19,9 +20,9 @@ $(document).ready(function(ev) {
 		var list = $(this).next(".list-content");
 		list.slideToggle( 400, function() {
 			if ( list.is(':visible') )
-				title.children('div').removeClass('hidden');
+				title.children('span').removeClass('hidden');
 			else
-				title.children('div').addClass('hidden');
+				title.children('span').addClass('hidden');
 		});
 	});
 
@@ -31,7 +32,7 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist('unreaded', function() {
+		loadPostlist('unreaded', 0, function() {
 			if ( typeof isPhone != 'undefined' ) // For phones.
 				setVSeparator();
 		});
@@ -45,7 +46,7 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist('starred', function() {
+		loadPostlist('starred', 0, function() {
 			if ( typeof isPhone != 'undefined' ) // For phones.
 				setVSeparator();
 		});
@@ -73,10 +74,14 @@ $(document).ready(function(ev) {
 
 				feedsTmpl = feedsTmpl
 					.replace("{id_feed}", item.id_feed)
-					.replace("{favicon}", '<img src="' + item.favicon + '" alt="' + feeds[i].name + '" />')
 					.replace("{name}", item.name)
 					.replace("{not_readed}", ( item.count > 0 ) ? 'not-readed' : '')
 					.replace("{count}", ( item.count > 0 ) ? '(' + item.count + ')' : '');
+
+				if ( typeof(item.favicon) != 'undefined' )
+					feedsTmpl = feedsTmpl.replace("{favicon}", '<img src="' + item.favicon + '" alt="' + feeds[i].name + '" />');
+				else
+					feedsTmpl = feedsTmpl.replace("{favicon}", '<span class="sprite">&nbsp;</span>');
 				unreaded = unreaded + parseInt(item.count);
 
 				feedList.append(feedsTmpl);
@@ -105,7 +110,7 @@ $(document).ready(function(ev) {
 			selFeed.removeClass('selected-feed');
 		selFeed = $(this).addClass('selected-feed');
 
-		loadPostlist(selFeed.attr("href"), function() {
+		loadPostlist(selFeed.attr("href"), 0, function() {
 			if ( typeof isPhone != 'undefined' ) // For phones.
 				setVSeparator();
 		});
@@ -117,6 +122,8 @@ $(document).ready(function(ev) {
 	// the post-list goes down the page when the event is called.
 	var fcHeight = $('#feed-contextmenu').outerHeight();
 	$(document).on("click", ".feed-menu", function(e) {
+		hoverFeed = $(this).prev('.item_link').attr('href');
+
 		var x = $(document).width() - $(this).offset().left - $(this).outerWidth();
 		var y = $(this).offset().top + $(this).outerHeight();
 
@@ -132,21 +139,15 @@ $(document).ready(function(ev) {
 		e.preventDefault();
 	});
 
-	if ( typeof isPhone != 'undefined' ) { // For phones.
-		$(document).on("click", ".feed-menu", function() {
-			hoverFeed = $(this).parent().attr("href");
-		});
-	}
-	else {
+	if ( typeof isPhone === 'undefined' ) { // For phones.
 		$(document).on({
 			mouseenter: function() {
-				hoverFeed = $(this).attr("href");
-				$(this).children(".feed-menu").show();
+				$(this).children('.feed-menu').show();
 			},
 			mouseleave: function() {
-				$(this).children(".feed-menu").hide();
+				$(this).children('.feed-menu').hide();
 			}
-		}, 'a.item_link');
+		}, '#feed-list li');
 	}
 
 	$('#mark-as-read').click( function() {
@@ -200,34 +201,54 @@ $(document).ready(function(ev) {
 	/* END FEED LIST */
 
 	/* POST LIST */
-	function loadPostlist(feed, callback) {
+	function loadPostlist(feed, from, callback) {
+		if ( killScroll == true )
+			return;
+		killScroll = true;
+
 		loader.fadeIn();
+
+		var sendData = {
+			feed : feed
+		}
+
+		if ( from > 0 )
+			sendData.next = from;
+		else
+			posts = {};
+
+			plist = {};
 
 		$.ajax({
 			type    : "POST",
 			dataType: "json",
 			url     : "posts",
-			data    : {
-				feed: feed
-			}
+			data    : sendData
 		}).done(function(plist) {
-			posts = plist;
+			if ( from > 0 && typeof plist.posts !== 'undefined' )
+				$.extend(posts.posts, plist.posts);
+			else if ( from == 0 )
+				$.extend(posts, plist);
+
 			var feedTmpl = $("#feeddata-tmpl").html();
 			var postBase = $("#posts-tmpl").html();
-			postList.html('');
 			var postsTmpl, readed, starred;
 
-			feedTmpl = feedTmpl
-				.replace("{feed_site}", posts.site)
-				.replace("{feed_name}", posts.name)
-				.replace("{last_update}", posts.last_update);
-			postList.append(feedTmpl);
+			if ( from == 0 ) {
+				postList.html('');
+
+				feedTmpl = feedTmpl
+					.replace("{feed_site}", posts.site)
+					.replace("{feed_name}", posts.name)
+					.replace("{last_update}", posts.last_update);
+				postList.append(feedTmpl);
+			}
 
 			if ( posts.last_update === '' )
 				postList.children('.feed-title').children('.feed-last-update').hide();
 
-			if ( typeof posts.posts !== 'undefined' ) {
-				$.each(posts.posts, function(i, item) {
+			if ( typeof plist.posts !== 'undefined' ) {
+				$.each(plist.posts, function(i, item) {
 					postsTmpl = postBase;
 					readed = (item.readed > 0) ? 'readed' : '';
 					starred = (item.starred > 0) ? 'starred' : '';
@@ -249,18 +270,28 @@ $(document).ready(function(ev) {
 				});
 			}
 
-			postList.animate({scrollTop: 0},'500', function() {
-				if (typeof callback === 'function')
-					callback();
-			});
+			if ( from > 0 && typeof callback === 'function' )
+				callback();
+			else {
+				postList.animate({scrollTop: 0},'500', function() {
+					if (typeof callback === 'function')
+						callback();
+				});
+			}
+			lastSelFeed = feed;
+			killScroll = false;
+
 			loader.fadeOut();
 		}).fail(function() {
 			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+			killScroll = false;
 		});
 	}
 
 	$(document).on("click", "a.title", function(e) {
+		killScroll = true;
+
 		if ( selPost )
 			selPost.removeClass('selected-post');
 		selPost = $(this).addClass('selected-post');
@@ -299,10 +330,14 @@ $(document).ready(function(ev) {
 						var replaceFeedData = $("#feeds-tmpl").children('li').html();
 						replaceFeedData = replaceFeedData
 							.replace("{id_feed}", feeds[i].id_feed)
-							.replace("{favicon}", '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" />')
 							.replace("{name}", feeds[i].name)
 							.replace("{not_readed}", ( feeds[i].count > 0 ) ? 'not-readed' : '')
 							.replace("{count}", ( feeds[i].count > 0 ) ? '(' + feeds[i].count + ')' : '');
+
+						if ( typeof(feeds[i].favicon) != 'undefined' )
+							replaceFeedData = replaceFeedData.replace("{favicon}", '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" />');
+						else
+							replaceFeedData = replaceFeedData.replace("{favicon}", '<span class="sprite">&nbsp;</span>');
 
 						$("#feed-list a[href='" + selFeed.attr("href") + "']").parent().html(replaceFeedData);
 					}
@@ -310,6 +345,8 @@ $(document).ready(function(ev) {
 
 				$('title').html('RSS Reader (' + unreaded + ')');
 			}
+
+			killScroll = false;
 		});
 
 		e.preventDefault();
@@ -358,6 +395,9 @@ $(document).ready(function(ev) {
 				.parents('.entry').children('.content').children('.post-manager').children('#star2').addClass('starred');
 		}
 		managePost (send);
+
+		e.stopPropagation();
+		e.preventDefault();
 	});
 
 	$(document).on("click", "#star2", function(e) {
@@ -380,6 +420,17 @@ $(document).ready(function(ev) {
 				.parents('.entry').children('a').children('#star1').addClass('starred');
 		}
 		managePost (send);
+	});
+
+	postList.scroll( function() {
+		var divTotalSize = $(this)[0].scrollHeight - $(this).height();
+		if  ( $(this).scrollTop() >= divTotalSize ) {
+			if ( killScroll == false ) {
+				loadPostlist(lastSelFeed, $(".entry").size(), function() {
+					killScroll = false;
+				});
+			}
+		}
 	});
 	/* END POST LIST */
 
@@ -449,7 +500,7 @@ $(document).ready(function(ev) {
 		if ( selFeed )
 			selFeed.removeClass('selected-feed');
 
-		loadPostlist($('#search-input').val(), function() {
+		loadPostlist($('#search-input').val(), 0, function() {
 			if ( typeof isPhone != 'undefined' ) // For phones.
 				setVSeparator();
 		});

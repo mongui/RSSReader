@@ -5,6 +5,15 @@
 	padding-bottom: 35px;
 }
 
+.list-content li {
+	min-height: 25px;
+	line-height: 25px;
+}
+
+#feed-list li a span {
+	margin-top: 7px;
+}
+
 #wrapper {
 	height: 100%;
 }
@@ -19,12 +28,20 @@
 	z-index: 1;
 }
 
+#separator .sprite {
+	height: inherit;
+	top: 0;
+	width: 54px;
+	display: inherit;
+	margin: 0 auto;
+	background-position: 0 -107px;
+}
+
 #post-list {
 	float: none;
 	width: 100%;
 	height: 0;
 	display: block;
-
 	position: fixed;
 	bottom: 0;
 	background-color: #FFFFFF;
@@ -47,8 +64,9 @@
 	max-width: 100%;
 }
 
-.feed-menu {
-	display: block !important;
+#feed-list .feed-menu {
+	display: block;
+	margin-top: -18px;
 }
 
 .feed-last-update {

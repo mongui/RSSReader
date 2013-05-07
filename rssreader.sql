@@ -76,7 +76,9 @@ INSERT INTO `config` (`param`, `value`) VALUES
 ('admin', '1'),
 ('feed_updatable', 'true'),
 ('max_feeds_per_update', '10'),
+('max_posts_to_show', '50'),
 ('minutes_between_updates', '30'),
+('show_favicons', 'true'),
 ('timezone', 'Europe/Madrid');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

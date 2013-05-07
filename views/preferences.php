@@ -67,7 +67,8 @@
 			timezone:		$('#timezone').val(),
 			mins_updates:   $('#mins_updates').val(),
 			max_feeds:      $('#max_feeds').val(),
-			feed_updatable: $('#feed_updatable').val()
+			show_favicons:  $('#show_favicons').is(':checked') ? 'true' : 'false',
+			feed_updatable: $('#feed_updatable').is(':checked') ? 'true' : 'false'
 		};
 
 		return srvData;
@@ -98,8 +99,14 @@
 		</div>
 
 		<div class="input">
+			<label for="show_favicons">Show favicons in the feedlist</label>
+			<input id="show_favicons" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ( $this->config->get('show_favicons') ) ? 'checked="checked"' : '' ?> />
+			Yes
+		</div>
+
+		<div class="input">
 			<label for="feed_updatable">Users can update feeds</label>
-			<input id="feed_updatable" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ($this->config->get('feed_updatable') == 'true') ? 'checked="checked"' : '' ?> />
+			<input id="feed_updatable" class="inputbox" type="checkbox" tabindex="10" value="1" <?= ( $this->config->get('feed_updatable') ) ? 'checked="checked"' : '' ?> />
 			Yes
 		</div>
 	</fieldset>

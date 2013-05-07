@@ -11,10 +11,7 @@ class Config
 
 	public function set( $name, $value )
 	{
-		if ( !isset($this->vars[$name]) )
-		{
-			$this->vars[$name] = $value;
-		}
+		$this->vars[$name] = $value;
 	}
 
 	public function get( $name )

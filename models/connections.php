@@ -84,7 +84,7 @@ class Connections extends ModelBase
 
 		if ( !isset($feed->id_feed) )
 		{
-			$feed_data = &$this->get_feed_by_url($feed_url, TRUE);
+			$feed_data = $this->get_feed_by_url($feed_url, TRUE);
 
 			if ( isset($feed_data) )
 			{
@@ -134,12 +134,13 @@ class Connections extends ModelBase
 		return isset($feed->id_feed) ? $feed->id_feed : 0;
 	}
 
-	function feeds_per_user ( $user_id, $unread = TRUE )
+	function feeds_per_user ( $user_id, $favicon = TRUE, $unread = TRUE )
 	{
+		$get_fav = ( $favicon ) ? 'f.favicon,' : '';
 		if ( $unread )
 		{
 			$sql = "
-				SELECT u.id_feed, f.favicon, u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count
+				SELECT u.id_feed, $get_fav u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count
 				FROM feeds f
 				LEFT JOIN posts p ON p.id_feed = f.id_feed
 				LEFT JOIN readed_posts r ON p.id_post = r.id_post
@@ -178,8 +179,9 @@ class Connections extends ModelBase
 		return $dbdata->fetchObject();
 	}
 
-	function posts_from_feed ( $feed_id, $max = 50, $user_id = NULL, $search = NULL )
+	function posts_from_feed ( $feed_id, $next = 0, $user_id = NULL, $search = NULL )
 	{
+		$max = $this->config->get('max_posts_to_show');
 		if ( $user_id && $feed_id == 'unreaded' )
 		{
 			$sql = "
@@ -193,7 +195,7 @@ class Connections extends ModelBase
 						u.id_user = $user_id AND
 						p.id_post NOT IN (select id_post from readed_posts where id_post = p.id_post AND id_user = u.id_user)
 					ORDER BY timestamp desc
-					LIMIT $max
+					LIMIT $next, $max
 			";
 		}
 		elseif ( $user_id && $feed_id == 'starred' )
@@ -209,7 +211,7 @@ class Connections extends ModelBase
 						u.id_user = $user_id AND
 						p.id_post IN (select id_post from starred_posts where id_post = p.id_post AND id_user = u.id_user)
 					ORDER BY timestamp desc
-					LIMIT $max
+					LIMIT $next, $max
 			";
 		}
 		elseif ( $user_id && $feed_id == 'search' && isset($search) )
@@ -229,7 +231,7 @@ class Connections extends ModelBase
 							p.title LIKE '%$search%'
 						)
 					ORDER BY timestamp desc
-					LIMIT $max
+					LIMIT $next, $max
 			";
 		}
 		elseif ( $user_id )
@@ -246,7 +248,7 @@ class Connections extends ModelBase
 						u.id_user = $user_id AND
 						p.id_feed = $feed_id
 					ORDER BY timestamp desc
-					LIMIT $max
+					LIMIT $next, $max
 			";
 		}
 		else
@@ -257,7 +259,7 @@ class Connections extends ModelBase
 					WHERE
 						posts.id_feed = $feed_id
 					ORDER BY timestamp desc
-					LIMIT $max
+					LIMIT $next, $max
 			";
 		}
 
@@ -272,7 +274,7 @@ class Connections extends ModelBase
 			return FALSE;
 	}
 
-	function &get_feed_by_url ( $url, $fast = FALSE )
+	function get_feed_by_url ( $url, $fast = FALSE )
 	{
 		$this->load->library('simplepie');
 
@@ -339,7 +341,7 @@ class Connections extends ModelBase
 
 		$feed = $this->feed_data_from_id ($feed_id);
 
-		$feed_data = &$this->get_feed_by_url($feed->url);
+		$feed_data = $this->get_feed_by_url($feed->url);
 
 		foreach ( $feed_data->get_items() as $item )
 		{
@@ -522,7 +524,12 @@ class Connections extends ModelBase
 		$dbdata->execute();
 
 		foreach ( $dbdata->fetchAll(PDO::FETCH_OBJ) as $conf )
+		{
+			if ($conf->value == 'true') $conf->value = true;
+			elseif ($conf->value == 'false') $conf->value = false;
+
 			$this->config->set($conf->param, $conf->value);
+		}
 	}
 
 	function save_config ( $data )
