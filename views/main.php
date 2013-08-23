@@ -3,13 +3,14 @@
 <head>
 	<meta charset="utf-8" />
 	<title>RSS Reader</title>
-	<link rel="stylesheet" href="<?= site_url() ?>public_data/rssreader.css" />
 	<? if ( isset($is_phone) ): ?>
-	<link rel="stylesheet" href="<?= site_url() ?>public_data/handheld.css" />
+	<link rel="stylesheet" href="<?= site_url() ?>public_data/rssreader,handheld.css" />
 	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
 	<script>
 		var isPhone = true;
 	</script>
+	<? else: ?>
+	<link rel="stylesheet" href="<?= site_url() ?>public_data/rssreader.css" />
 	<? endif; ?>
 	<!--[if IE]>
 	<link rel="stylesheet" href="<?= site_url() ?>public_data/normalize.css" />
@@ -33,7 +34,6 @@
 	<div id="wrapper">
 		<div id="feed-panel">
 			<div id="add-feed">
-				<!--<img src="<?= site_url() ?>/public_data/images/add_feed.gif" alt="Add feed" /> -->
 				<span class="sprite">&nbsp;</span>
 				Add Feed
 			</div>
@@ -61,6 +61,7 @@
 			<ul class="display-menu" id="feed-contextmenu">
 				<li id="mark-as-read">Mark feed as read</li>
 				<li id="change-name">Change feed name</li>
+				<li id="add-to-folder">Add to a folder</li>
 				<? if ( $this->config->get('feed_updatable') ): ?>
 					<li id="update-feed">Update feed</li>
 				<? endif; ?>
@@ -89,6 +90,13 @@
 					{favicon}
 					{name} {count}
 				</a><span class="feed-menu">&nbsp;</span>
+			</li>
+		</ul>
+		<ul id="feeds-tmpl2">
+			<li class="folder">
+				<span class="sprite"> </span>
+				<span class="foldername" rel="{folder}">{name}</span>
+				<ul class="list-content">{feed}</ul>
 			</li>
 		</ul>
 		<div id="feeddata-tmpl">
@@ -121,6 +129,6 @@
 	</div>
 
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-	<script async type="text/javascript" src="<?= site_url() ?>public_data/rssreader.js"></script>
+	<script type="text/javascript" src="<?= site_url() ?>public_data/rssreader.js"></script>
 </body>
 </html>

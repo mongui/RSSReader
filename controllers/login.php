@@ -38,10 +38,7 @@ class Login extends ControllerBase
 			if ( $userdata )
 			{
 				if ( $remember == 'yes' )
-				{
-					$cookie_auth = $this->manage_users->update_auth_key($userdata->id_user);
-					setcookie("rss_sess", $cookie_auth, time() + 60 * 60 * 24 * 7, "/", "localhost", false, true);
-				}
+					setcookie("rss_sess", $userdata->auth_key, time() + 60 * 60 * 24 * 365, "/", "localhost", false, true);
 
 				$this->sessions($userdata);
 				echo 'success';
@@ -82,7 +79,9 @@ class Login extends ControllerBase
 			if ( is_phone() )
 				$data['is_phone'] = TRUE;
 
-			$this->load->view('login', $data);
+			$this->load->library('minifier');
+			$html = $this->load->view('login', $data, TRUE);
+			echo $this->minifier->minify_html($html);
 		}
 	}
 
@@ -109,6 +108,7 @@ class Login extends ControllerBase
 			{
 				$newpass = $this->manage_users->random_string();
 				$this->manage_users->change_password($userdata->id_user, $newpass);
+				$cookie_auth = $this->manage_users->update_auth_key($userdata->id_user);
 
 				$to = $userdata->email;
 				$subject = "RSS Reader account management";

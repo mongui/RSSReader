@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS `posts` (
 
 CREATE TABLE IF NOT EXISTS `readed_posts` (
   `id_post` int(10) unsigned NOT NULL,
-  `id_user` int(10) unsigned NOT NULL
+  `id_user` int(10) unsigned NOT NULL,
+  KEY `id_post` (`id_post`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `starred_posts` (

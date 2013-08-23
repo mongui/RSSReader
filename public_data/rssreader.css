@@ -158,6 +158,7 @@ a { outline: none; }
 	background-position: 0px -30px !important;
 }
 
+.list-content .folder li,
 .list-content li .sprite { margin-left: 14px; }
 .list-content li a { padding-left: 14px; }
 
@@ -187,8 +188,22 @@ a { outline: none; }
 	cursor: pointer;
 }
 
-#feed-panel li:hover  {
+#feed-panel li:hover {
 	background-color: #fdf9e8;
+}
+
+#feed-panel .folder:hover {
+	background-color: inherit;
+}
+
+#feed-panel .folder .foldername {
+	font-style: italic;
+}
+
+#feed-panel .folder .sprite {
+	background-position: -44px -48px;
+	height: 11px;
+	width: 11px;
 }
 
 #feed-list li a {
@@ -202,7 +217,7 @@ a { outline: none; }
 #feed-list li a span {
 	width: 11px;
 	height: 11px;
-	background-position: -44px -37px;
+	background-position: -44px -37px !important;
 	margin-left: 0;
 }
 

@@ -18,19 +18,21 @@ $(document).ready(function ()
 			logUsername.addClass('empty-input');
 			error = true;
 		}
-		else
+		else {
 			logUsername.removeClass('empty-input');
+		}
 
 		if ( logPass.val() === '' ) {
 			logPass.addClass('empty-input');
 			error = true;
 		}
-		else
+		else {
 			logPass.removeClass('empty-input');
+		}
 
-
-		if ( error )
+		if ( error ) {
 			return false;
+		}
 
 		$("#loader").fadeIn();
 
@@ -43,12 +45,10 @@ $(document).ready(function ()
 				remember: ( logRemember.is(':checked') ) ? 'yes' : 'no'
 			}
 		}).done(function(msg) {
-			if ( msg === 'success' )
-			{
+			if ( msg === 'success' ) {
 				window.location = './';
 			}
-			else if ( msg === 'failure' )
-			{
+			else if ( msg === 'failure' ) {
 				$(".info").fadeOut();
 				$("#error").text('Invalid username/password.');
 				$("#error").fadeIn();
@@ -63,8 +63,6 @@ $(document).ready(function ()
 				$("#forgoten-password-form").fadeIn();
 			});
 		});
-
-
 	});
 
 	$("#button-register-form").click(function() {
@@ -88,8 +86,9 @@ $(document).ready(function ()
 			recEmail.addClass('empty-input');
 			error = true;
 		}
-		else
+		else {
 			recEmail.removeClass('empty-input');
+		}
 
 		if ( !check_email(recEmail.val()) ) {
 			$("#error").text('Invalid email address.');
@@ -97,8 +96,9 @@ $(document).ready(function ()
 			error = true;
 		}
 
-		if ( error )
+		if ( error ) {
 			return false;
+		}
 
 		$("#loader").fadeIn();
 
@@ -109,8 +109,7 @@ $(document).ready(function ()
 				email: recEmail.val()
 			}
 		}).done(function(msg) {
-			if ( msg === 'success' )
-			{
+			if ( msg === 'success' ) {
 				$(".info").fadeOut();
 				$("#success").text('Your new password has been sent to your email.');
 				$("#success").fadeIn();
@@ -145,8 +144,9 @@ $(document).ready(function ()
 			regUsername.addClass('empty-input');
 			error = true;
 		}
-		else
+		else {
 			regUsername.removeClass('empty-input');
+		}
 
 		if ( regPass.val().length < 6 ) {
 			regPass.addClass('empty-input');
@@ -171,8 +171,9 @@ $(document).ready(function ()
 			regEmail.addClass('empty-input');
 			error = true;
 		}
-		else
+		else {
 			regEmail.removeClass('empty-input');
+		}
 
 		if ( !check_email(regEmail.val()) ) {
 			$("#error").html($("#error").text() + '<br>Invalid email address.');
@@ -180,8 +181,9 @@ $(document).ready(function ()
 			error = true;
 		}
 
-		if ( error )
+		if ( error ) {
 			return false;
+		}
 
 		$("#loader").fadeIn();
 

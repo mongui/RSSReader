@@ -11,6 +11,7 @@ class Rssreader extends ControllerBase
 		$this->load->helper('url');
 		$this->load->model('connections');
 		$this->load->model('manage_users');
+		$this->load->library('minifier');
 
 		$this->connections->load_config();
 		date_default_timezone_set( $this->config->get('timezone') );
@@ -27,7 +28,8 @@ class Rssreader extends ControllerBase
 			if ( is_phone() )
 				$data['is_phone'] = TRUE;
 
-			$this->load->view('main', $data);
+			$html = $this->load->view('main', $data, TRUE);
+			echo $this->minifier->minify_html($html);
 		}
 		// Send him to login form.
 		else
@@ -38,13 +40,14 @@ class Rssreader extends ControllerBase
 	{
 		error_reporting(E_ERROR);
 		if ( $feed_id )
-				return $this->connections->update_feed($feed_id);
+			return $this->connections->update_feed($feed_id);
 	}
 
 	public function update_all()
 	{
 		echo 'Updating... ';
 
+		error_reporting(E_ERROR);
 		set_time_limit(300);
 		ini_set('memory_limit', '256M');
 
@@ -82,7 +85,8 @@ class Rssreader extends ControllerBase
 		}
 		else
 		{
-			echo $this->load->view('add', NULL, TRUE);
+			$html = $this->load->view('add', NULL, TRUE);
+			echo $this->minifier->minify_html($html);
 		}
 	}
 
@@ -128,7 +132,10 @@ class Rssreader extends ControllerBase
 			}
 		}
 		else
-			echo $this->load->view('importfile', NULL, TRUE);
+		{
+			$html = $this->load->view('importfile', NULL, TRUE);
+			echo $this->minifier->minify_html($html);
+		}
 	}
 
 	private function add_feed( $url )
@@ -174,8 +181,8 @@ class Rssreader extends ControllerBase
 
 			if ( isset($rtrn) || (!$_POST['curPassword'] && !$_POST['newPassword']) )
 			{
-				$_SESSION['timeformat'] = $userdata['time_format'];
-				$_SESSION['language'] = $userdata['language'];
+				$_SESSION['timeformat']	= $userdata['time_format'];
+				$_SESSION['language']	= $userdata['language'];
 				echo 'success';
 			}
 			else
@@ -186,12 +193,14 @@ class Rssreader extends ControllerBase
 			$data = NULL;
 			if ( $this->config->get('admin') == $_SESSION['id'] )
 			{
-				$data['is_admin'] = TRUE;
-				$data['timezones'] = file($this->config->get('document_root') . $this->config->get('index_path') . '/timezones.txt');
-				$data['timezones'] = array_map('trim', $data['timezones']);
+				$data['is_admin']	= TRUE;
+				$data['timezones']	= file($this->config->get('document_root') . $this->config->get('index_path') . '/timezones.txt');
+				$data['timezones']	= array_map('trim', $data['timezones']);
 			}
 
 			echo $this->load->view('preferences', $data, TRUE);
+			//$html = $this->load->view('preferences', $data, TRUE);
+			//echo $this->minifier->minify_html($html);
 		}
 	}
 
@@ -228,7 +237,7 @@ class Rssreader extends ControllerBase
 				$data->name		= ucfirst($feed_id) . ' posts';
 
 			elseif ( $feed_id == 'search' )
-				$data->name		= 'Search for &quot;<i>' . $search_string . '</i>&quot;';
+				$data->name	= 'Search for &quot;<i>' . $search_string . '</i>&quot;';
 		}
 
 		if ( !empty($data) )
@@ -263,32 +272,57 @@ class Rssreader extends ControllerBase
 
 	public function managefeed()
 	{
-		if ( isset($_POST["feed"])		)	$feed	= filter_var($_POST["feed"], FILTER_SANITIZE_STRING);
-		if ( isset($_POST["action"])	)	$action	= filter_var($_POST["action"], FILTER_SANITIZE_STRING);
-		if ( isset($_POST["value"])		)	$value	= filter_var(trim($_POST["value"]), FILTER_SANITIZE_STRING);
+		if ( isset($_POST["feed"]	)	)	$feed	= filter_var($_POST["feed"], FILTER_SANITIZE_STRING			);
+		if ( isset($_POST["action"]	)	)	$action	= filter_var($_POST["action"], FILTER_SANITIZE_STRING		);
+		if ( isset($_POST["folder"]	)	)	$folder	= filter_var(trim($_POST["folder"]), FILTER_SANITIZE_STRING	);
+		if ( isset($_POST["value"]	)	)	$value	= filter_var($_POST["value"], FILTER_SANITIZE_STRING		);
 
-		if ( isset($feed)		&& $action == 'readed'						)
+		// Marking feed as readed?
+		if ( isset($feed)		&& $action == 'readed'												)
 		{
 			$this->connections->set_readed_feed($feed, $_SESSION['id'], 1);
 			echo 'success';
 		}
-		elseif ( isset($feed)	&& $action == 'update'						)
+		// Updating feed?
+		elseif ( isset($feed)	&& $action == 'update'												)
 		{
 			if ( $this->update($feed) )
 				echo 'success';
 			else
 				echo 'failure';
 		}
-		elseif ( isset($feed)	&& $action == 'name'	&& !empty($value)	)
+		// Changing feed name?
+		elseif ( isset($feed)	&& $action == 'name'		&& !empty($value)						)
 		{
-			if ($this->connections->update_feed_name($feed, $value, $_SESSION['id']) )
+			if ( $this->connections->update_feed_name($feed, $value, $_SESSION['id']) )
 				echo 'success';
 			else
 				echo 'failure';
 		}
-		elseif ( isset($feed)	&& $action == 'unsubscribe'					)
+
+		// Sorting the feed list?
+		elseif ( isset($_POST['value'])	&& $action == 'sort'										)
 		{
-			if ($this->connections->unsubscribe_feed($feed, $_SESSION['id']) )
+			$value = filter_var_array($_POST['value'], FILTER_VALIDATE_INT);
+
+			if ( $this->connections->move_feed($_SESSION['id'], $value) )
+				echo 'success';
+			else
+				echo 'failure';
+		}
+
+		// Creating a new folder for feeds?
+		elseif ( isset($feed)	&& $action == 'newfolder'	&& !empty($value)						)
+		{
+			if ( $folder = $this->connections->new_folder($_SESSION['id'], $value, $feed) )
+				echo 'success';
+			else
+				echo 'failure';
+		}
+		// Removing a feed?
+		elseif ( isset($feed)	&& $action == 'unsubscribe'											)
+		{
+			if ( $this->connections->unsubscribe_feed($feed, $_SESSION['id']) )
 				echo 'success';
 			else
 				echo 'failure';

@@ -140,14 +140,59 @@ class Connections extends ModelBase
 		if ( $unread )
 		{
 			$sql = "
-				SELECT u.id_feed, $get_fav u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count
+				SELECT u.id_feed, o.name AS foldername, o.id_folder, o.position AS folder_position, $get_fav u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count, f.site, f.url, f.last_update, u.position
 				FROM feeds f
 				LEFT JOIN posts p ON p.id_feed = f.id_feed
 				LEFT JOIN readed_posts r ON p.id_post = r.id_post
 				LEFT JOIN user_feed u ON f.id_feed = u.id_feed
+				LEFT JOIN folders o ON o.id_folder = u.id_folder AND u.id_user = o.id_user
 				WHERE u.id_user = $user_id
 				GROUP BY u.id_feed
+				ORDER BY o.id_folder, position ASC
 			";
+
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+			$feedsraw = $dbdata->fetchAll(PDO::FETCH_OBJ);
+			$feeds = array();
+			$folders = array();
+
+			foreach ( $feedsraw as $i => $feeeed )
+			{
+				$feedsraw[$i] = (object)array_filter((array)$feedsraw[$i], 'strlen');
+				if ( isset($feedsraw[$i]->id_folder) )
+				{
+					if ( !isset($folders[$feedsraw[$i]->folder_position]) )
+					{
+						$folders[$feedsraw[$i]->folder_position] = array(
+																'folder'	=> $feedsraw[$i]->id_folder,
+																'name'		=> $feedsraw[$i]->foldername,
+																'position'	=> $feedsraw[$i]->folder_position,
+																'feeds'		=> array()
+															);
+					}
+
+					array_push($folders[$feedsraw[$i]->folder_position]['feeds'], $feedsraw[$i]);
+				}
+				else
+					$feeds[$feedsraw[$i]->position] = $feedsraw[$i];
+			}
+
+			foreach ( $folders as $pos => $fldr )
+			{
+				if ( !isset($feeds[$pos]) )
+				{
+					$feeds[$pos] = (object)$fldr;
+					unset($folders[$pos]);
+				}
+			}
+
+			if ( count($folders) > 0 )
+				$feeds = array_merge($feeds, $folders);
+
+			ksort($feeds);
+
+			return $feeds;
 		}
 		else
 		{
@@ -157,11 +202,12 @@ class Connections extends ModelBase
 				WHERE id_user = $user_id
 				ORDER BY position
 			";
-		}
-		$dbdata = $this->conn->prepare($sql);
-		$dbdata->execute();
 
-		return $dbdata->fetchAll(PDO::FETCH_OBJ);
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+
+			return $dbdata->fetchAll(PDO::FETCH_OBJ);
+		}
 	}
 
 	function feed_data_from_id ( $feed_id )
@@ -178,6 +224,22 @@ class Connections extends ModelBase
 
 		return $dbdata->fetchObject();
 	}
+
+	function user_feed_from_id ( $feed_id, $user )
+	{
+		$sql = "
+				SELECT *
+				FROM user_feed
+				WHERE id_feed = $feed_id AND id_user = $user
+				LIMIT 1
+			";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+
+		return $dbdata->fetchObject();
+	}
+
 
 	function posts_from_feed ( $feed_id, $next = 0, $user_id = NULL, $search = NULL )
 	{
@@ -283,6 +345,7 @@ class Connections extends ModelBase
 		if ( $fast )
 			$this->simplepie->set_stupidly_fast(true);
 
+		error_reporting(E_WARNING);
 		// This allows Youtube videos.
 		$strip_htmltags = $this->simplepie->strip_htmltags;
 		unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
@@ -498,14 +561,180 @@ class Connections extends ModelBase
 		}
 	}
 
-	function update_feed_name ( $feed, $newname, $user )
+	function new_folder ( $user, $foldername, $idfeed )
 	{
-		$sql = "UPDATE user_feed SET name = '$newname' WHERE id_feed = $feed AND id_user = $user";
+		$feed = $this->user_feed_from_id($idfeed, $user);
 
+		$sql = "INSERT INTO folders (id_user, position, name) VALUES ($user, $feed->position, '$foldername')";
+
+		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$dbdata = $this->conn->prepare($sql);
 		$dbdata->execute();
 
-		return $dbdata->lastInsertId();
+		$last_id = $this->conn->lastInsertId('id_folder');
+		echo 'Last id: ' . $last_id . '<br>';
+		if ( is_numeric($last_id) )
+		{
+			$sql = "UPDATE user_feed SET position = 1, id_folder = $last_id WHERE id_user = $user AND id_feed = $idfeed";
+			echo 'Consulta: ' . $sql . '<br>';
+			$dbdata = $this->conn->prepare($sql);
+
+			try {
+				$dbdata->execute();
+				return $last_id;
+			}
+			catch (PDOException $err) {
+				return FALSE;
+			}
+		}
+
+		return FALSE;
+	}
+
+	function remove_folder ( $user, $folder )
+	{
+		$sql = "DELETE FROM folders WHERE id_folder = $folder AND id_user = $user";
+
+		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$dbdata = $this->conn->prepare($sql);
+
+		try {
+			$dbdata->execute();
+			return TRUE;
+		}
+		catch (PDOException $err) {
+			return FALSE;
+		}
+	}
+
+	function get_folders ( $user )
+	{
+		$sql = "SELECT * FROM folders WHERE id_user = $user";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+		$list = $dbdata->fetchAll(PDO::FETCH_OBJ);
+
+		if ( !empty($list) )
+			return $list;
+		else
+			return FALSE;
+	}
+
+	function move_feed ( $user, $feed_data )
+	{
+		if ( empty($feed_data) )
+			return FALSE;
+
+		// Controlar que los feeds pertenezcan al usuario.
+		$feeds = $this->feeds_per_user($user, FALSE, FALSE);
+		foreach ( $feeds as $f1 => $f2 )
+			$feedsdb[] = $f2->id_feed;
+
+		$folders = $this->get_folders($user);
+		foreach ( $folders as $f1 => $f2 )
+			$fldrsdb[] = $f2->id_folder;
+
+		$up_feeds = array();
+		$up_folders = array();
+
+		foreach ( $feed_data as $pos => $id )
+		{
+			if ( is_array($id) )
+			{
+				$pos2 = 1;
+				$fldrlist[] = $id['folder'];
+				$up_folders[] = array(
+									'position'	=> ($pos+1),
+									'folder'	=> $id['folder']
+									);
+
+				foreach ( $id['value'] as $id2 )
+				{
+					if ( in_array($id2, $feedsdb) )
+					{
+						$feedlist[] = $id2;
+						$up_feeds[] = array(
+											'position'	=> $pos2,
+											'feed'		=> $id2,
+											'folder'	=> $id['folder']
+											);
+						$pos2++;
+					}
+				}
+			}
+			else
+			{
+				if ( in_array($id, $feedsdb) )
+				{
+					$feedlist[] = $id;
+					$up_feeds[] = array(
+										'position'	=> ($pos+1),
+										'feed'		=> $id,
+										'folder'	=> 0
+										);
+				}
+			}
+		}
+
+		$remainingfromdb = array_diff($feedsdb, $feedlist);
+		if ( !empty( $remainingfromdb ) )
+		{
+			$pos = end($up_feeds);
+			$pos = $pos['position'];
+			foreach  ( $remainingfromdb as $remain )
+			{
+				$pos++;
+				$feedlist[] = $id;
+				$up_feeds[] = array(
+									'position'	=> $pos,
+									'feed'		=> $remain,
+									'folder'	=> 0
+									);
+			}
+		}
+
+		$remainingfromdb = array_diff($fldrsdb, $fldrlist);
+		if ( !empty( $remainingfromdb ) )
+			foreach  ( $remainingfromdb as $remain )
+				$this->remove_folder($user, $remain);
+
+		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$sql_feed = "UPDATE user_feed SET position = CASE id_feed ";
+		foreach ( $up_feeds as $fd )
+		{
+			$sql_feed .= "WHEN " . $fd['feed'] . " THEN " . $fd['position'] . " ";
+		}
+		$sql_feed .= "ELSE position END, id_folder = CASE id_feed ";
+		foreach ( $up_feeds as $fd )
+		{
+			$sql_feed .= "WHEN " . $fd['feed'] . " THEN " . $fd['folder'] . " ";
+		}
+		$sql_feed .= "ELSE id_folder END WHERE id_user = " . $user . " AND id_feed IN (" . implode(',', $feedlist) .")";
+
+		$dbdata = $this->conn->prepare($sql_feed);
+		try {
+			$dbdata->execute();
+
+			$sql_fldr = "UPDATE folders SET position = CASE id_folder ";
+			foreach ( $up_folders as $fld )
+			{
+				$sql_fldr .= "WHEN " . $fld['folder'] . " THEN " . $fld['position'] . " ";
+			}
+			$sql_fldr .= "ELSE position END WHERE id_user = " . $user . " AND id_folder IN (" . implode(',', $fldrlist) .")";
+			$dbdata = $this->conn->prepare($sql_fldr);
+
+			try {
+				$dbdata->execute();
+				return TRUE;
+			}
+			catch (PDOException $err) {
+				return FALSE;
+			}
+		}
+		catch (PDOException $err) {
+			return FALSE;
+		}
 	}
 
 	function unsubscribe_feed ( $feed, $user )
@@ -549,8 +778,8 @@ class Connections extends ModelBase
 		try {
 			$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-		$dbdata = $this->conn->prepare($sql);
-		$dbdata->execute();
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
 		}
 		catch (PDOException $err) {
 			//print_r('Error: ' . $err . '');
