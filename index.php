@@ -3,6 +3,11 @@ define('MVCious', TRUE);
 
 require 'config.php';
 
+if ( $config['debug'] == TRUE )
+	error_reporting(E_ALL);
+else
+	error_reporting(0);
+
 require 'mvc/Load.php';
 require 'mvc/Config.php';
 require 'mvc/ModelBase.php';
@@ -32,15 +37,42 @@ function load_controller( $uri, $pos = 0, $dir = NULL )
 	elseif ( is_dir( 'controllers/' . $dir . $uri[$pos]) )
 	{
 		$pos++;
-		$dir = array_slice($uri, 0, $pos);
-		$dir = implode('/', $dir) . '/';
-		return load_controller($uri, $pos, $dir);
+		
+		if ( isset($uri[$pos]) )
+		{
+			$dir = array_slice($uri, 0, $pos);
+			$dir = implode('/', $dir) . '/';
+			return load_controller($uri, $pos, $dir);
+		}
+		else
+			load_error(404, 'Request controller not exists!');
+	}
+}
+
+function load_error( $errnum = 404, $text )
+{
+	global $config;
+	header(':', TRUE, $errnum);
+	
+	if ( isset($config['debug']) && $config['debug'] == TRUE )
+		trigger_error($text, E_USER_ERROR);
+	else
+	{
+		ob_start();
+		include 'errors/' . $errnum . '.php';
+		echo ob_get_clean();
+		die();
 	}
 }
 
 // Is it a CLI call?
 if ( isset($argv[1]) )
-	$path = $argv[1];
+{
+	$path = $argv;
+	array_shift($path);
+	$path = array_map('strtolower', $path);
+	$uri  = array_diff($path, array(''));
+}
 // Or is it a web call?
 else
 {
@@ -53,30 +85,41 @@ else
 		if ( empty($path) )
 			$path = $_GET['/'];
 	}
+	$path = trim(strtolower($path), '/');
+	$uri  = array_diff(explode('/', $path), array(''));
 }
-
-$path = trim(strtolower($path), '/');
-$uri  = array_diff(explode('/', $path), array(''));
 
 if ( !empty($uri) )
 {
 	$uripos = load_controller($uri);
-
 	if ( !$uripos )
 	{
-		array_unshift($uri, $config['default_controller']);
-		$uripos = load_controller($uri);
 
-		if ( !$uripos )
-			trigger_error('Request controller not exists!', E_USER_ERROR);
+		// Aquí sólo debería cargar si existe la función en el default_controller, que no la coja como argumento del controlador index.
+		if ( isset($config['default_controller']) && file_exists( 'controllers/' . $config['default_controller'] . '.php') )
+		{
+			array_unshift($uri, $config['default_controller']);
+
+			$uripos = load_controller($uri);
+
+			$controller = new $uri[$uripos-1]();
+			if ( !$uripos )
+				load_error(404, 'Default controller not exists!');
+			elseif ( !is_callable(array($controller, $uri[$uripos]) ) )
+				load_error(404, 'Request controller not exists!');
+		}
+		else
+			load_error(404, 'Default controller not exists!');
 	}
 }
 else
 {
-	$uri = array($config['default_controller']);
+	if ( isset($config['default_controller']) && file_exists( 'controllers/' . $config['default_controller'] . '.php') )
+		$uri = array($config['default_controller']);
+
 	$uripos = load_controller($uri);
 	if ( !$uripos )
-		trigger_error('Request controller not exists!', E_USER_ERROR);
+		load_error(404, 'Request controller not exists!');
 }
 
 if ( $uripos )
@@ -91,6 +134,6 @@ if ( !empty($args) && is_callable(array($controller, $args[0])) )
 elseif ( is_callable(array($controller, 'index')) )
 	call_user_func_array(array($controller, 'index'), $args);
 else
-	trigger_error('Request method not exists!', E_USER_ERROR);
+	load_error(404, 'Request method not exists!');
 
 ?>

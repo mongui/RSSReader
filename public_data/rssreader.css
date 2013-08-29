@@ -320,8 +320,8 @@ a { outline: none; }
 	padding: 0px;
 }
 
-.entries li {
-	border-bottom:1px solid #E5E5E5;
+.entries .entry {
+	border-bottom: 1px solid #E5E5E5;
 }
 
 .entry a .timestamp {

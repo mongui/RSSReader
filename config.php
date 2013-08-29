@@ -16,10 +16,13 @@ $config['folders'] = array(
 			);
 
 $config['database'] = array(
+				'type'				=> 'mysql',
 				'dbhost'			=> 'localhost',
 				'dbname'			=> 'rssreader',
 				'dbuser'			=> 'myuser',
 				'dbpass'			=> 'mypass'
 			);
+
+$config['debug']					= FALSE;
 ?>
 

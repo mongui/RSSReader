@@ -6,7 +6,9 @@ class Rssreader extends ControllerBase
 	{
 		parent::__construct();
 
-		session_start ();
+		if( !isset($_SESSION) )
+			session_start();
+		
 		//http://simplepie.org/wiki/reference/start
 		$this->load->helper('url');
 		$this->load->model('connections');

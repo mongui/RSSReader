@@ -561,6 +561,16 @@ class Connections extends ModelBase
 		}
 	}
 
+	function update_feed_name ( $feed, $newname, $user )
+	{
+		$sql = "UPDATE user_feed SET name = '$newname' WHERE id_feed = $feed AND id_user = $user";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+
+		return $dbdata->lastInsertId();
+	}
+
 	function new_folder ( $user, $foldername, $idfeed )
 	{
 		$feed = $this->user_feed_from_id($idfeed, $user);
@@ -572,11 +582,9 @@ class Connections extends ModelBase
 		$dbdata->execute();
 
 		$last_id = $this->conn->lastInsertId('id_folder');
-		echo 'Last id: ' . $last_id . '<br>';
 		if ( is_numeric($last_id) )
 		{
 			$sql = "UPDATE user_feed SET position = 1, id_folder = $last_id WHERE id_user = $user AND id_feed = $idfeed";
-			echo 'Consulta: ' . $sql . '<br>';
 			$dbdata = $this->conn->prepare($sql);
 
 			try {
@@ -626,14 +634,14 @@ class Connections extends ModelBase
 		if ( empty($feed_data) )
 			return FALSE;
 
-		// Controlar que los feeds pertenezcan al usuario.
 		$feeds = $this->feeds_per_user($user, FALSE, FALSE);
 		foreach ( $feeds as $f1 => $f2 )
 			$feedsdb[] = $f2->id_feed;
 
 		$folders = $this->get_folders($user);
-		foreach ( $folders as $f1 => $f2 )
-			$fldrsdb[] = $f2->id_folder;
+		if ( is_array($folders) )
+			foreach ( $folders as $f1 => $f2 )
+				$fldrsdb[] = $f2->id_folder;
 
 		$up_feeds = array();
 		$up_folders = array();
@@ -694,10 +702,13 @@ class Connections extends ModelBase
 			}
 		}
 
-		$remainingfromdb = array_diff($fldrsdb, $fldrlist);
-		if ( !empty( $remainingfromdb ) )
-			foreach  ( $remainingfromdb as $remain )
-				$this->remove_folder($user, $remain);
+		if ( isset($fldrsdb) && isset($fldrlist) )
+		{
+			$remainingfromdb = array_diff($fldrsdb, $fldrlist);
+			if ( !empty( $remainingfromdb ) )
+				foreach  ( $remainingfromdb as $remain )
+					$this->remove_folder($user, $remain);
+		}
 
 		$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$sql_feed = "UPDATE user_feed SET position = CASE id_feed ";
@@ -716,21 +727,26 @@ class Connections extends ModelBase
 		try {
 			$dbdata->execute();
 
-			$sql_fldr = "UPDATE folders SET position = CASE id_folder ";
-			foreach ( $up_folders as $fld )
+			if ( is_array($up_folders) && isset($fldrlist) )
 			{
-				$sql_fldr .= "WHEN " . $fld['folder'] . " THEN " . $fld['position'] . " ";
-			}
-			$sql_fldr .= "ELSE position END WHERE id_user = " . $user . " AND id_folder IN (" . implode(',', $fldrlist) .")";
-			$dbdata = $this->conn->prepare($sql_fldr);
+				$sql_fldr = "UPDATE folders SET position = CASE id_folder ";
+				foreach ( $up_folders as $fld )
+				{
+					$sql_fldr .= "WHEN " . $fld['folder'] . " THEN " . $fld['position'] . " ";
+				}
+				$sql_fldr .= "ELSE position END WHERE id_user = " . $user . " AND id_folder IN (" . implode(',', $fldrlist) .")";
+				$dbdata = $this->conn->prepare($sql_fldr);
 
-			try {
-				$dbdata->execute();
+				try {
+					$dbdata->execute();
+					return TRUE;
+				}
+				catch (PDOException $err) {
+					return FALSE;
+				}
+			}
+			else
 				return TRUE;
-			}
-			catch (PDOException $err) {
-				return FALSE;
-			}
 		}
 		catch (PDOException $err) {
 			return FALSE;

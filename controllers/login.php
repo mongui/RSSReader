@@ -154,4 +154,21 @@ class Login extends ControllerBase
 
 		echo 'failure';
 	}
+
+	public function demo()
+	{
+		if ( $this->config->get('demo') )
+		{
+			$data->id_user		= 1;
+			$data->username		= 'demo';
+			$data->email		= 'demo@demo.com';
+			$data->time_format	= 'd/m/Y';
+			$data->language		= 'en';
+
+			$this->sessions($data);
+		}
+
+		$this->load->helper('url');
+		redirect( site_url() );
+	}
 }

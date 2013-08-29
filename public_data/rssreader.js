@@ -228,11 +228,28 @@ $(document).ready(function(ev) {
 	});
 
 	$('#change-name').click( function() {
+		var name;
+		$.each(feeds, function(i, item) {
+			if ( typeof item.id_feed === 'undefined' && typeof item.folder !== 'NaN' )
+			{
+				$.each(item.feeds, function(i2, item2) {
+					if ( item2.id_feed == hoverFeed ) {
+						name = item2.name;
+					}
+				});
+			}
+			else {
+				if ( item.id_feed == hoverFeed ) {
+					name = item.name;
+				}
+			}
+		});
+
 		if ( !isNaN(hoverFeed) ) {
 			var send = {
 				feed	: hoverFeed,
 				action	: 'name',
-				value	: prompt("Please enter the new feed name:", "My feed")
+				value	: prompt("Please enter the new feed name:", name)
 			};
 			feeds = manageFeed(send);
 
@@ -247,7 +264,7 @@ $(document).ready(function(ev) {
 			if ( typeof nfolder !== 'string' || nfolder == '' ) {
 				return;
 			}
-
+/*
 			$( "#feed-list li" ).each(function (i) {
 				if ( $(this).children('a').attr('href') == hoverFeed ) {
 					var feedLi = $(this).html();
@@ -260,7 +277,7 @@ $(document).ready(function(ev) {
 					$(this).html(fldrTmpl).addClass('folder');
 				}
 			});
-
+*/
 			$(".list-content").sortable({ connectWith: '.list-content' });
 
 			var send = {
@@ -269,6 +286,8 @@ $(document).ready(function(ev) {
 				value	: nfolder,
 			};
 			feeds = manageFeed(send);
+
+			updateFeedlist();
 		}
 	});
 
@@ -417,31 +436,7 @@ $(document).ready(function(ev) {
 
 				$(this).parents('.entry').children('.content').children('.post-manager').children('.read').removeClass('unread');
 
-				$.each(feeds, function(i, item) {
-					if ( item.id_feed == selFeed.attr("href")) {
-						feeds[i].count = item.count - 1;
-						unreaded--;
-
-						var replaceFeedData = $("#feeds-tmpl").children('li').html();
-						replaceFeedData = replaceFeedData
-							.replace("{id_feed}", feeds[i].id_feed)
-							.replace("{name}", feeds[i].name)
-							.replace("{not_readed}", ( feeds[i].count > 0 ) ? 'not-readed selected-feed' : 'selected-feed')
-							.replace("{count}", ( feeds[i].count > 0 ) ? '(' + feeds[i].count + ')' : '');
-
-						if ( typeof(feeds[i].favicon) != 'undefined' ) {
-							replaceFeedData = replaceFeedData.replace("{favicon}", '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" />');
-						}
-						else {
-							replaceFeedData = replaceFeedData.replace("{favicon}", '<span class="sprite">&nbsp;</span>');
-						}
-
-						selFeed = $("#feed-list a[href='" + selFeed.attr("href") + "']");
-						selFeed.parent().html(replaceFeedData);
-					}
-				});
-
-				$('title').html('RSS Reader (' + unreaded + ')');
+				updateFeedElement(-1);
 			}
 
 			killScroll = false;
@@ -449,6 +444,37 @@ $(document).ready(function(ev) {
 
 		e.preventDefault();
 	});
+
+	function updateFeedElement(addToCount) {
+		addToCount = ( addToCount == null ) ? 0 : addToCount;
+
+		$.each(feeds, function(i, item) {
+			if ( item.id_feed == selFeed.attr("href")) {
+				feeds[i].count = parseInt(feeds[i].count, 10);
+				feeds[i].count = item.count + addToCount;
+				unreaded = unreaded + addToCount;
+
+				var insertHere = '';
+				if ( typeof(feeds[i].favicon) != 'undefined' ) {
+					insertHere += '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" /> ' + feeds[i].name + ' ';
+				}
+				else {
+					insertHere += '<span class="sprite">&nbsp;</span> ' + feeds[i].name + ' ';
+				}
+
+				if ( feeds[i].count > 0 ) {
+					insertHere += '(' + feeds[i].count + ')';
+					selFeed.addClass('not-readed');
+				}
+				else {
+					selFeed.removeClass('not-readed');
+				}
+				selFeed.html( insertHere );
+			}
+		});
+
+		$('title').html('RSS Reader (' + unreaded + ')');
+	}
 
 	$(document).on("click", ".read", function(e) {
 		var send = {
@@ -462,12 +488,16 @@ $(document).ready(function(ev) {
 			$(this)
 				.removeClass('unread')
 				.parents('.entry').children('.title').addClass('readed');
+
+			updateFeedElement(-1);
 		}
 		else {
 			send.state = 0;
 			$(this)
 				.addClass('unread')
 				.parents('.entry').children('.title').removeClass('readed');
+
+			updateFeedElement(1);
 		}
 		managePost (send);
 	});
