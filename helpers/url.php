@@ -17,9 +17,12 @@ if ( !function_exists('redirect'))
 
 if ( !function_exists('site_url'))
 {
-	function site_url ( $uri = '' )
+	function site_url ( $uri = '',  $relative = NULL )
 	{
 		global $config;
-		return $config['protocol'] . '://' . $config['server_host'] . $config['index_path'] . $uri;
+		if ( isset($relative) )
+			return $config['index_path'] . $uri;
+		else
+			return $config['protocol'] . '://' . $config['server_host'] . $config['index_path'] . $uri;
 	}
 }

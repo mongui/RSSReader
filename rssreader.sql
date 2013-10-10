@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `name` varchar(255) NOT NULL,
   `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `favicon` varchar(255) DEFAULT NULL,
+  `active` bit(1) NOT NULL default b'1',
   PRIMARY KEY (`id_feed`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=30 ;
 

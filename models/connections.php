@@ -53,6 +53,7 @@ class Connections extends ModelBase
 			SELECT *
 			FROM feeds
 			WHERE last_update < FROM_UNIXTIME($seconds)
+			AND active = 1
 			$limit
 		";
 
@@ -136,6 +137,9 @@ class Connections extends ModelBase
 
 	function feeds_per_user ( $user_id, $favicon = TRUE, $unread = TRUE )
 	{
+		if ( !isset($user_id) )
+			return FALSE;
+
 		$get_fav = ( $favicon ) ? 'f.favicon,' : '';
 		if ( $unread )
 		{
@@ -343,14 +347,16 @@ class Connections extends ModelBase
 		$this->simplepie->set_feed_url($url);
 
 		if ( $fast )
-			$this->simplepie->set_stupidly_fast(true);
+			$this->simplepie->set_stupidly_fast(TRUE);
 
-		error_reporting(E_WARNING);
+		error_reporting(E_ERROR);
+
 		// This allows Youtube videos.
 		$strip_htmltags = $this->simplepie->strip_htmltags;
 		unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
 		$this->simplepie->strip_htmltags($strip_htmltags);
 
+		$this->simplepie->set_output_encoding('UTF-8');
 		$this->simplepie->init();
 		$this->simplepie->handle_content_type();
 
@@ -360,15 +366,39 @@ class Connections extends ModelBase
 			unset ($this->simplepie);
 			$this->simplepie = new SimplePie();
 			$file = fopen($url, 'r');
+
+			if ( !isset($http_response_header) )
+				$http_response_header = get_headers($url);
+
+			$return_code = @explode(' ', $http_response_header[0]);
+			$return_code = (int)$return_code[1];
+
+			if ( $return_code >= 300 && $return_code <= 399 )
+			{
+				foreach ( $http_response_header as $response )
+				{
+					if ( strpos($response, 'Location: ') !== FALSE )
+					{
+						$response = str_replace('Location: ', '', $response);
+						$newurldata = $this->get_feed_by_url($response);
+						if ( is_object($newurldata) )
+						{
+							$this->change_feed_url($url, $response);
+							return $newurldata;
+						}
+						else
+							return FALSE;
+					}
+				}
+			}
+			elseif ( $return_code < 200 || $return_code > 299 )
+				return FALSE;
+
 			$content = stream_get_contents($file);
 
 			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
 			$replacements = array('á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú', 'ñ', 'Ñ');
 
-			$convmap = array(0x0, 0x10000, 0, 0xfffff);
-			$content = mb_decode_numericentity($content, $convmap, 'UTF-8');
-
-			$content = preg_replace('/(?!&[a-z]{2,6};)(&)/', '&amp;', $content);
 			$content = str_replace($patterns, $replacements, $content);
 
 			$content = preg_replace('/(<script.+?>)(<\/script>)/i', '', $content);
@@ -379,7 +409,7 @@ class Connections extends ModelBase
 			// This allows Youtube videos.
 			$strip_htmltags = $this->simplepie->strip_htmltags;
 			unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
-			$this->simplepie->set_input_encoding('UTF-8');
+			$this->simplepie->set_output_encoding('UTF-8');
 			$this->simplepie->init();
 			$this->simplepie->handle_content_type();
 		}
@@ -406,6 +436,12 @@ class Connections extends ModelBase
 
 		$feed_data = $this->get_feed_by_url($feed->url);
 
+		if ( !isset($feed_data) || $feed_data == FALSE )
+		{
+			$this->active_feed($feed_id, 0);
+			return FALSE;
+		}
+
 		foreach ( $feed_data->get_items() as $item )
 		{
 			if ( $item->get_authors() )
@@ -417,8 +453,8 @@ class Connections extends ModelBase
 				'timestamp'			=> date('Y-m-d H:i:s', strtotime( $item->get_date() )),
 				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode (',', $authors) : '',
 				'url'				=> $item->get_link(),
-				'title'				=> addslashes(preg_replace('/<[^>]*>/', '', $item->get_title())),
-				'content'			=> str_replace("'", "&#39;", $item->get_content())
+				'title'				=> $item->get_title(),
+				'content'			=> $item->get_content()
 			);
 			unset($authors);
 			$or_where[] = "url = '" . $item->get_link() . "'";
@@ -451,21 +487,30 @@ class Connections extends ModelBase
 
 		if ( !empty($data) )
 		{
-			foreach ( $data as $item )
-				$insert[] = "(".$item['id_feed'].",	'".$item['timestamp']."', '".$item['author']."', '".$item['url']."', '".$item['title']."', '".$item['content']."')";
-
-			$insert = implode(', ', $insert);
-
-			$sql = "
-				INSERT INTO posts
-				(id_feed, timestamp, author, url, title, content)
-				VALUES $insert
-			";
-
 			try {
 				$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+				$sql = '
+					INSERT INTO posts
+					(id_feed, timestamp, author, url, title, content)
+					VALUES 
+				';
+				$total = array_fill(0, count($data), '(?, ?, ?, ?, ?, ?)');
+				$sql .= implode(', ', $total);
+
 				$dbdata = $this->conn->prepare($sql);
+				$i = 1;
+
+				foreach($data as $item)
+				{
+					$dbdata->bindParam($i++, $item['id_feed']);
+					$dbdata->bindParam($i++, $item['timestamp']);
+					$dbdata->bindParam($i++, $item['author']);
+					$dbdata->bindParam($i++, $item['url']);
+					$dbdata->bindParam($i++, $item['title']);
+					$dbdata->bindParam($i++, $item['content']);
+				}
+
 				$dbdata->execute();
 			}
 			catch (PDOException $err) {
@@ -475,6 +520,58 @@ class Connections extends ModelBase
 
 		return TRUE;
 	}
+
+	function change_feed_url ( $oldurl, $newurl = NULL )
+	{
+		if ( !isset($oldurl) || !isset($newurl) )
+			return FALSE;
+
+		try {
+			$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+			$sql = "
+				UPDATE feeds 
+				SET url = '$newurl' 
+				WHERE url LIKE '$oldurl'
+			";
+
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+		}
+		catch (PDOException $err) {
+			echo '\n\n\nError: ' . $err . '\n\n\n';
+		}
+	}
+
+	function active_feed ( $feed, $active = TRUE )
+	{
+		if ( !isset($feed) )
+			return FALSE;
+
+		if ( !isset($active) || $active == FALSE )
+			$active = 0;
+		elseif ( $active == TRUE || $active == 1 )
+			$active = 1;
+		else
+			$active = 0;
+
+		try {
+			$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+			$sql = '
+				UPDATE feeds
+				SET active = ' . $active . ' 
+				WHERE id_feed = ' . $feed . '
+			';
+
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+		}
+		catch (PDOException $err) {
+			echo '\n\n\nError: ' . $err . '\n\n\n';
+		}
+	}
+
 
 	function set_readed_post ( $post, $user, $readed = FALSE )
 	{

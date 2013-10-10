@@ -38,36 +38,6 @@ class Rssreader extends ControllerBase
 			redirect( site_url('login') );
 	}
 
-	public function update( $feed_id = FALSE )
-	{
-		error_reporting(E_ERROR);
-		if ( $feed_id )
-			return $this->connections->update_feed($feed_id);
-	}
-
-	public function update_all()
-	{
-		echo 'Updating... ';
-
-		error_reporting(E_ERROR);
-		set_time_limit(300);
-		ini_set('memory_limit', '256M');
-
-		$seconds_ago = $this->config->get('minutes_between_updates') * 60;
-		$max_feeds = $this->config->get('max_feeds_per_update');
-
-		$feeds = $this->connections->feeds_not_uptated( $seconds_ago, $max_feeds );
-
-		foreach ( $feeds as $feed )
-		{
-			echo $feed->id_feed . ', ';
-			$updated = $this->connections->update_feed($feed->id_feed);
-
-			if ( $updated )
-				$this->connections->change_feed_last_update ($feed->id_feed);
-		}
-	}
-
 	public function add()
 	{
 		if( isset($_POST["feed_url"]) )
@@ -288,7 +258,7 @@ class Rssreader extends ControllerBase
 		// Updating feed?
 		elseif ( isset($feed)	&& $action == 'update'												)
 		{
-			if ( $this->update($feed) )
+			if ( $this->connections->update_feed($feed) )
 				echo 'success';
 			else
 				echo 'failure';

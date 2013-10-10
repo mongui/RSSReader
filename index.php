@@ -86,6 +86,17 @@ else
 			$path = $_GET['/'];
 	}
 	$path = trim(strtolower($path), '/');
+
+	if ( isset($path) && $path != '' && isset($config['controller_extension']) && $config['controller_extension'] != '' )
+	{
+		$pos = strpos($path, '.' . $config['controller_extension']);
+		
+		if ($pos === false)
+			load_error(404, 'Request controller not exists!');
+		else
+			$path = str_replace('.' . $config['controller_extension'], '', $path);
+	}
+
 	$uri  = array_diff(explode('/', $path), array(''));
 }
 
@@ -94,8 +105,6 @@ if ( !empty($uri) )
 	$uripos = load_controller($uri);
 	if ( !$uripos )
 	{
-
-		// Aquí sólo debería cargar si existe la función en el default_controller, que no la coja como argumento del controlador index.
 		if ( isset($config['default_controller']) && file_exists( 'controllers/' . $config['default_controller'] . '.php') )
 		{
 			array_unshift($uri, $config['default_controller']);
@@ -131,8 +140,14 @@ $controller = new $uri[$uripos]();
 
 if ( !empty($args) && is_callable(array($controller, $args[0])) )
 	call_user_func_array(array($controller, $args[0]), array_slice($args, 1));
-elseif ( is_callable(array($controller, 'index')) )
-	call_user_func_array(array($controller, 'index'), $args);
+elseif ( is_callable(array($controller, 'index')) ) {
+	$refl = new ReflectionMethod($controller, 'index');
+
+	if ( $refl->getNumberOfParameters() == 0 && count($args) > 0 )
+		load_error(404, 'Request method not exists!');
+	else
+		call_user_func_array(array($controller, 'index'), $args);
+}
 else
 	load_error(404, 'Request method not exists!');
 
