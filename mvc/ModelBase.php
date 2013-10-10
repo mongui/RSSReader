@@ -25,7 +25,7 @@ abstract class ModelBase
 		{
 			$newdb = $this->set_connection($connection);
 			if ( $newdb == FALSE )
-				load_error(501, 'Unknown database type.');
+				load_error(500, 'Unknown database type.');
 
 			$newdb->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION ); 
 

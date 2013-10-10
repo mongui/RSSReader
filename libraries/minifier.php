@@ -83,7 +83,7 @@ class Minifier
 
 		$text = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $text);
 		$text = str_replace(array("\r\n", "\r", "\n", "\t", '  ', '    ', '    '), '', $text);
-		$text = str_replace(array(" {", ": "), array("{", ":"), $text);
+		$text = str_replace(array(" {", ": ", "{ ", " }", ", "), array("{", ":", "{", "}", ","), $text);
 
 		if ($text === null)
 			trigger_error('Impossible to minify: File too big.', E_USER_ERROR);
