@@ -27,7 +27,7 @@
 			<li id="preferences-menu">Preferences</li>
 			<li id="import-menu">Import feeds</li>
 			<li class="hr">&nbsp;</li>
-			<li><a href="<?= site_url() ?>login/logout">Logout</a></li>
+			<li><a href="<?= site_url() ?>logout">Logout</a></li>
 		</ul>
 	</div>
 
@@ -73,13 +73,13 @@
 		<div id="separator"><div class="sprite">&nbsp;</div></div>
 
 		<div id="post-list">
-<fieldset id="welcome-fieldset">
-<h2>¿Qué es RSS Reader?</h2>
-<p>RSS Reader es un agregador. Gracias a los agregadores o lectores de fuentes web (programas o sitios que permiten leer fuentes web) se pueden obtener resúmenes de todos los sitios que se desee desde el escritorio del sistema operativo, programas de correo electrónico o por medio de aplicaciones web que funcionan como agregadores. No es necesario abrir el navegador y visitar decenas de páginas.</p>
-<h2>¿Qué es RSS?</h2>
-<img src="<?= site_url() ?>/public_data/images/rsslogo.png" alt="RSS logo" />
-<p>RSS son las siglas de Really Simple Syndication, un formato XML para indicar o compartir contenido en la web. Se utiliza para difundir información actualizada frecuentemente a usuarios que se han suscrito a la fuente de contenidos. El formato permite distribuir contenidos sin necesidad de un navegador, utilizando un software diseñado para leer estos contenidos RSS (agregador). A pesar de eso, es posible utilizar el mismo navegador para ver los contenidos RSS. Las últimas versiones de los principales navegadores permiten leer los RSS sin necesidad de software adicional. RSS es parte de la familia de los formatos XML, desarrollado específicamente para todo tipo de sitios que se actualicen con frecuencia y por medio del cual se puede compartir la información y usarla en otros sitios web o programas. A esto se le conoce como redifusión web o sindicación web (una traducción incorrecta, pero de uso muy común).</p>
-</fieldset>
+			<fieldset id="welcome-fieldset">
+				<h2>What is RSS Reader?</h2>
+				<img src="<?= site_url() ?>/public_data/images/rsslogo.png" alt="RSS logo" />
+				<p>RSS Reader is an aggregator. Thanks to the aggregators or web feed readers (programs or sites that let you read web sources) summaries of all the sites you want can be obtained from the desktop of the operating system, e-mail programs or through web applications that function as aggregators. There is no need to open the browser and visit dozens of pages.</p>
+				<h2>What is RSS?</h2>
+				<p>RSS stands for Really Simple Syndication, an XML format for sharing content on the Web. It's used to spread frequently updated information to users who have subscribed to the content source. The format allows to distribute content without a browser, using software designed to read these RSS feeds (aggregator). Nevertheless, it is possible to use a browser to read RSS content. The latest versions of the major browsers can read RSS with no additional software required. RSS is part of the family of XML formats developed specifically for all types of sites that are updated frequently and through which information can be shared and used on other web sites or programs. This is known as web or web syndication.</p>
+			</fieldset>
 		</div>
 	</div>
 

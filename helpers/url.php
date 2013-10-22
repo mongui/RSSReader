@@ -1,11 +1,29 @@
-<?php if ( !defined('MVCious')) exit('No direct script access allowed');
+<?php if (!defined('MVCious')) exit('No direct script access allowed');
+/**
+ * URL helpers
+ *
+ * @package		MVCious
+ * @subpackage	Helpers
+ * @author		Gontzal Goikoetxea
+ * @link		https://github.com/mongui/MVCious
+ * @license		http://www.apache.org/licenses/LICENSE-2.0  Apache License 2.0
+ */
 
-if ( !function_exists('redirect'))
-{
-	function redirect ( $uri = NULL )
+// ---------------------------------------------------------------------------
+
+/**
+ * Redirect
+ *
+ * Changes the header of the sent page and redirects where we want.
+ *
+ * @access	public
+ * @param	string
+ * @return	void
+ */
+if (!function_exists('redirect')) {
+	function redirect($uri = NULL)
 	{
-		if ( !isset($uri) )
-		{
+		if (!isset($uri)) {
 			global $config;
 			$uri = $config['protocol'] . '://' . $config['server_host'] . $config['index_path'];
 		}
@@ -15,14 +33,24 @@ if ( !function_exists('redirect'))
 	}
 }
 
-if ( !function_exists('site_url'))
-{
-	function site_url ( $uri = '',  $relative = NULL )
+/**
+ * Site URL
+ *
+ * Returns the absolute or relative site URL on the Internet.
+ *
+ * @access	public
+ * @param	string
+ * @param	bool
+ * @return	string
+ */
+if (!function_exists('site_url')) {
+	function site_url($uri = '',  $relative = NULL)
 	{
 		global $config;
-		if ( isset($relative) )
+		if (isset($relative)) {
 			return $config['index_path'] . $uri;
-		else
+		} else {
 			return $config['protocol'] . '://' . $config['server_host'] . $config['index_path'] . $uri;
+		}
 	}
 }

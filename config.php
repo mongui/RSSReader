@@ -1,4 +1,4 @@
-<?php if ( !defined('MVCious')) exit('No direct script access allowed');
+<?php if (!defined('MVCious')) exit('No direct script access allowed');
 
 $config['default_controller']	= 'rssreader';
 $config['protocol']				= 'http';
@@ -24,5 +24,3 @@ $config['database'] = array(
 			);
 
 $config['debug']					= FALSE;
-?>
-

@@ -66,7 +66,7 @@ $(document).ready(function(ev) {
 		$.ajax({
 			type	: "GET",
 			dataType: "json",
-			url		: "feeds"
+			url		: "feeds/get"
 		}).done(function(flist) {
 			feeds = flist;
 			feedList.html('');
@@ -329,7 +329,7 @@ $(document).ready(function(ev) {
 		$.ajax({
 			type    : "POST",
 			dataType: "json",
-			url     : "posts",
+			url     : "posts/get",
 			data    : sendData
 		}).done(function(plist) {
 			if ( from > 0 && typeof plist.posts !== 'undefined' ) {
@@ -588,7 +588,7 @@ $(document).ready(function(ev) {
 		loader.fadeIn();
 		$.ajax({
 			type	: "POST",
-			url		: "add",
+			url		: "feeds/add",
 			data	: {
 				feed_url: $('#feed-url').val()
 			}
@@ -766,7 +766,7 @@ $(document).ready(function(ev) {
 		loader.fadeIn();
 		$.ajax({
 			type	: "GET",
-			url		: "importfile"
+			url		: "feeds/importfile"
 		}).done(function(form) {
 			postList.html(form);
 			if ( typeof isPhone != 'undefined' ) { // For phones.
@@ -950,7 +950,7 @@ function eraseCookie(name) {
 function manageFeed(send) {
 	$.ajax({
 		type	: "POST",
-		url		: "managefeed",
+		url		: "feeds/manage",
 		data	: send
 	}).done(function(msg) {
 		return msg;
@@ -963,7 +963,7 @@ function manageFeed(send) {
 function managePost(send) {
 	$.ajax({
 		type	: "POST",
-		url		: "managepost",
+		url		: "posts/manage",
 		data	: send
 	}).done(function(msg) {
 		return msg;

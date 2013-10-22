@@ -1,45 +1,151 @@
-<?php if ( !defined('MVCious')) exit('No direct script access allowed');
-
+<?php if (!defined('MVCious')) exit('No direct script access allowed');
+/**
+ * Minifier Class
+ *
+ * Reduces the CSS, JS and HTML code sent to the client.
+ *
+ * @package		MVCious
+ * @subpackage	Libraries
+ * @author		Gontzal Goikoetxea
+ * @link		https://github.com/mongui/MVCious
+ * @license		http://www.apache.org/licenses/LICENSE-2.0  Apache License 2.0
+ */
 class Minifier
 {
-	private $css_files	= array();
-	private $js_files	= array();
-	private $html_files	= array();
+	/**
+	 * CSS Files array
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_css_files		= array();
 
-	public function clean_vars( $type )
+	/**
+	 * JS Files array
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_js_files		= array();
+
+	/**
+	 * HTML Files array
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_html_files	= array();
+
+	/**
+	 * Clean Vars
+	 *
+	 * Resets the three variables of this class.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	void
+	 */
+	public function clean_vars($type = NULL)
 	{
-		switch ($type) {
-			case 'css':
-				$this->css_files = array();
-			break;
-			case 'js':
-				$this->js_files = array();
-			break;
-			case 'html':
-				$this->html_files = array();
-			break;
+		if (isset($type) && ($type == 'css' || $type == 'js' || $type == 'html')) {
+			$var = '_' . $type . '_files';
+			$this->$var = array();
+		} else {
+			$this->_css_files = array();
+			$this->_js_files = array();
+			$this->_html_files = array();
 		}
 	}
 
-	public function add_file( $type, $file )
+	/**
+	 * Add File
+	 *
+	 * Add a file to be minimized.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @param 	string
+	 * @return	bool
+	 */
+	public function add_file($type, $file)
 	{
-		switch ($type) {
-			case 'css':
-				$comp_files = &$this->css_files;
-			break;
-			case 'js':
-				$comp_files = &$this->js_files;
-			break;
-			case 'html':
-				$comp_files = &$this->html_files;
-			break;
+		if (isset($file) && isset($type) && ($type == 'css' || $type == 'js' || $type == 'html')) {
+			$var = '_' . $type . '_files';
+			$comp_files = &$this->$var;
+		} else {
+			return FALSE;
 		}
-		if ( !in_array($file, $comp_files) )
+
+		if (!in_array($file, $comp_files)) {
 			$comp_files[] = $file;
+		}
+		return TRUE;
 	}
 
-	public function minify_html( $text = FALSE )
+	/**
+	 * Get Files
+	 *
+	 * Returns the files that will be minimized.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	array
+	 */
+	public function get_files($type = NULL)
 	{
+		if (!isset($type)) {
+			return array(
+						'css'	=> $this->_css_files,
+						'js'	=> $this->_js_files,
+						'html'	=> $this->_html_files
+						);
+		} elseif (isset($type) && ($type == 'css' || $type == 'js' || $type == 'html')) {
+			$var = '_' . $type . '_files';
+			return $this->$var;
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * Load Files
+	 *
+	 * Returns the string of the selected files.
+	 *
+	 * @access	private
+	 * @param	string
+	 * @return	string
+	 */
+	private function _load_files($type = NULL)
+	{
+		if (isset($type) && ($type == 'css' || $type == 'js' || $type == 'html')) {
+			$text = '';
+			$var = '_' . $type . '_files';
+			foreach ($this->$var as $file) {
+				$text .= file_get_contents($file);
+			}
+			return $text;
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * Minify HTML
+	 *
+	 * If the parameter is filled, minifies and returns the text inserted.
+	 * Otherwise, loads previously added files content, minimizes and returns it.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	string
+	 */
+	public function minify_html($text = NULL)
+	{
+		if (!isset($text)) {
+			$text = $this->_load_files('html');
+		}
+
 		$regex = '%# Collapse whitespace everywhere but in blacklisted elements.
 			(?>             # Match all whitespans other than single space.
 			  [^\S ]\s*     # Either one [\t\r\n\f\v] and zero or more ws,
@@ -63,47 +169,55 @@ class Minifier
 		$text = preg_replace('/<!--(?!\s*(?:\[if [^\]]+]|<!|>))(?:(?!-->).)*-->/s', '', $text);
 		$text = str_replace("> <", "><", $text);
 
-		if ($text === null)
+		if ($text === null) {
 			trigger_error('Impossible to minify: File too big.', E_USER_ERROR);
+		}
 
 		return $text;
 	}
 
-	public function minify_css( $text = FALSE )
+	/**
+	 * Minify CSS
+	 *
+	 * If the parameter is filled, minifies and returns the text inserted.
+	 * Otherwise, loads previously added files content, minimizes and returns it.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	string
+	 */
+	public function minify_css($text = NULL)
 	{
-		if ( $text == FALSE )
-		{
-			if ( empty($this->css_files) )
-				return FALSE;
-
-			$text = '';
-			foreach ( $this->css_files as $file )
-				$text .= file_get_contents($file);
+		if (!isset($text)) {
+			$text = $this->_load_files('css');
 		}
 
 		$text = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $text);
 		$text = str_replace(array("\r\n", "\r", "\n", "\t", '  ', '    ', '    '), '', $text);
 		$text = str_replace(array(" {", ": ", "{ ", " }", ", "), array("{", ":", "{", "}", ","), $text);
 
-		if ($text === null)
+		if ($text === null) {
 			trigger_error('Impossible to minify: File too big.', E_USER_ERROR);
+		}
 
 		return $text;
 	}
 
-	public function minify_js( $text = FALSE )
+	/**
+	 * Minify JS
+	 *
+	 * If the parameter is filled, minifies and returns the text inserted.
+	 * Otherwise, loads previously added files content, minimizes and returns it.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	string
+	 */
+	public function minify_js($text = NULL)
 	{
-		if ( $text == FALSE )
-		{
-			if ( empty($this->js_files) )
-				return FALSE;
-
-			$text = '';
-			foreach ( $this->js_files as $file )
-				$text .= file_get_contents($file);
+		if (!isset($text)) {
+			$text = $this->_load_files('js');
 		}
-
-		//echo 'Antes: ' . strlen($text);
 
 		$text = preg_replace('@//.*@','', $text); //delete comments
 		$text = preg_replace('@\s*/>@','>', $text); //delete xhtml tag slash ( />)
@@ -116,29 +230,23 @@ class Minifier
 
 		$count = preg_match_all("/(\Wvar (\w{3,})[ =])/", $text, $matches); //find var names
 
-		for( $i = 0; $i < $count; $i++ ) {
-			if ( $y+1 > 90 ) //count upper case alphabetic ascii code
-			{
+		for ($i = 0; $i < $count; $i++) {
+			if ( $y+1 > 90 ) { //count upper case alphabetic ascii code
 				$y = 65;
 				$x++;
-			}
-			else
+			} else {
 				$y++;
+			}
 
-			if ( isset($matches[$i]) )
-			{
-				//echo chr($x) . chr($y) . "=" . $matches[$i] . "\r\n";
+			if (isset($matches[$i])) {
 				$text = preg_replace("/(\W)(" . $matches[$i] . "=" . $matches[$i] . "\+)(\W)/", "$1" . chr($x) . chr($y) . "+=$3", $text); //replace 'longvar=longvar+'blabla' to AA+='blabla' 
 				$text = preg_replace("/(\W)(" . $matches[$i] . ")(\W)/", "$1" . chr($x) . chr($y) . "$3", $text); //replace all other vars
 			}
 		}
 
-		//$count = preg_match_all("/function (\w{3,})/", $text, $matches); //find function names
-
-		//echo 'Despues: ' . strlen($text);
-
-		if ($text === null)
+		if ($text === null) {
 			trigger_error('Impossible to minify: File too big.', E_USER_ERROR);
+		}
 
 		return $text;
 	}

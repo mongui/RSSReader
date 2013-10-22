@@ -1,31 +1,79 @@
-<?php if ( !defined('MVCious')) exit('No direct script access allowed');
-
+<?php if (!defined('MVCious')) exit('No direct script access allowed');
+/**
+ * Config Class
+ *
+ * Manages the config.php file inside the framework.
+ *
+ * @package		MVCious
+ * @subpackage	Core
+ * @author		Gontzal Goikoetxea
+ * @link		https://github.com/mongui/MVCious
+ * @license		http://www.apache.org/licenses/LICENSE-2.0  Apache License 2.0
+ */
 class Config
 {
-	private $vars;
+	/**
+	 * Array where the config options are stored.
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_vars;
 
+	/**
+	 * Constructor
+	 *
+	 * @access	public
+	 */
 	function __construct()
 	{
-		$this->vars = array();
+		$this->_vars = array();
 	}
 
-	public function set( $name, $value )
+	/**
+	 * Set
+	 *
+	 * Sets or changes a config option.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @param	string
+	 * @return	void
+	 */
+	public function set($name, $value)
 	{
-		$this->vars[$name] = $value;
+		$this->_vars[$name] = $value;
 	}
 
-	public function get( $name )
+	/**
+	 * Get
+	 *
+	 * Returns the config value assigned to the inserted key.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	mixed
+	 */
+	public function get($name)
 	{
-		if ( isset($this->vars[$name]) )
-		{
-			return $this->vars[$name];
+		if (isset($this->_vars[$name])) {
+			return $this->_vars[$name];
 		}
 	}
 
-	public function set_array( $arr )
+	/**
+	 * Set Array
+	 *
+	 * Sets or changes a complete config array.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	void
+	 */
+	public function set_array($arr)
 	{
-		foreach ( $arr as $key => $value )
-			$this->set ($key, $value);
+		foreach ($arr as $key => $value) {
+			$this->set($key, $value);
+		}
 	}
 }
-?>

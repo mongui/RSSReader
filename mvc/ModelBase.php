@@ -1,10 +1,38 @@
-<?php if ( !defined('MVCious')) exit('No direct script access allowed');
-
+<?php if (!defined('MVCious')) exit('No direct script access allowed');
+/**
+ * ModelBase Class
+ *
+ * Allows the model to be part of the framework.
+ *
+ * @package		MVCious
+ * @subpackage	Core
+ * @author		Gontzal Goikoetxea
+ * @link		https://github.com/mongui/MVCious
+ * @license		http://www.apache.org/licenses/LICENSE-2.0  Apache License 2.0
+ */
 abstract class ModelBase
 {
+	/**
+	 * PDO DB connection object
+	 *
+	 * @var		object
+	 * @access	protected
+	 */
 	protected $db;
+
+	/**
+	 * DB connection data
+	 *
+	 * @var		array
+	 * @access	protected
+	 */
 	protected $dbdata;
 
+	/**
+	 * Constructor
+	 *
+	 * @access	public
+	 */
 	public function __construct()
 	{
 		$inst =& get_instance();
@@ -13,42 +41,67 @@ abstract class ModelBase
 		$this->database($this->dbdata);
 	}
 
+	/**
+	 * Get instance from MVCious.
+	 *
+	 * @access	public
+	 * @param	mixed
+	 * @return	array
+	 */
 	function __get($key)
 	{
 		$inst =& get_instance();
 		return $inst->$key;
 	}
 
-	protected function database( $connection, $tovar = FALSE )
+	/**
+	 * Database
+	 *
+	 * Connects to the database and puts the given object in the
+	 * $db variable or returns it to the caller.
+	 *
+	 * @access	private
+	 * @param	string
+	 * @param 	string
+	 * @return	mixed
+	 */
+	protected function database($connection, $tovar = FALSE)
 	{
-		try
-		{
-			$newdb = $this->set_connection($connection);
-			if ( $newdb == FALSE )
+		try {
+			$newdb = $this->_set_connection($connection);
+			if ($newdb == FALSE) {
 				load_error(500, 'Unknown database type.');
+			}
 
-			$newdb->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION ); 
+			$newdb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); 
 
-			if ( $tovar )
+			if ($tovar) {
 				return $newdb;
-			else
+			} else {
 				$this->db = $newdb;
+			}
 		}
-		catch(PDOException $e)
-		{
+		catch (PDOException $e) {
 			load_error(503, 'There was a problem with the database connection: ' . $e->getMessage());
 		}
 	}
 
-
-	private function set_connection ( $connection )
+	/**
+	 * Set Connection
+	 *
+	 * Makes the connection to the database taking into
+	 * account the DBMS used.
+	 *
+	 * @access	private
+	 * @param	array
+	 * @return	object
+	 */
+	private function _set_connection($connection)
 	{
 		$attribs = array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'");
 
-		if ( $this->driver_available($connection['type']) )
-		{
-			switch ( $connection['type'] )
-			{
+		if ($this->driver_available($connection['type'])) {
+			switch ($connection['type']) {
 				case 'mysql':
 					$dbcon = new PDO('mysql:host=' . $connection['dbhost'] . ';dbname=' . $connection['dbname'], $connection['dbuser'], $connection['dbpass'], $attribs);
 				break;
@@ -80,23 +133,33 @@ abstract class ModelBase
 					$dbcon = FALSE;
 			}
 			return $dbcon;
-		}
-		else
+		} else {
 			load_error(503, '"' . $connection['type'] . '": This extension was not added to your php.ini.');
+		}
 	}
 
-	protected function driver_available ( $type )
+	/**
+	 * Driver Available?
+	 *
+	 * Checks if a especific database connector is available in
+	 * the server.
+	 *
+	 * @access	protected
+	 * @param	string
+	 * @return	bool
+	 */
+	protected function driver_available($type)
 	{
-		if ( !$type )
+		if (!$type) {
 			return FALSE;
+		}
 
-		foreach ( PDO::getAvailableDrivers() as $driver )
-		{
-			if ( $driver == $type )
+		foreach (PDO::getAvailableDrivers() as $driver) {
+			if ($driver == $type) {
 				return TRUE;
+			}
 		}
 
 		return FALSE;
 	}
 }
-?>
