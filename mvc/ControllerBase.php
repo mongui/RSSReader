@@ -12,8 +12,6 @@
  */
 abstract class ControllerBase
 {
-	private static $_inst;
-
 	/**
 	 * Constructor
 	 *
@@ -21,13 +19,7 @@ abstract class ControllerBase
 	 */
 	function __construct()
 	{
-		$this->config = new Config();
-		$this->load = new Load();
-
-		global $config;
-
-		$this->config->set_array($config);
-		self::$_inst =& $this;
+		//parent::__construct();
 	}
 
 	/**
@@ -37,8 +29,9 @@ abstract class ControllerBase
 	 * @param	mixed
 	 * @return	array
 	 */
-	public static function &get_instance()
+	function __get($key)
 	{
-		return self::$_inst;
+		$inst =& get_instance();
+		return $inst->$key;
 	}
 }

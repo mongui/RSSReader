@@ -39,9 +39,15 @@ class Posts extends ControllerBase
 			   !is_numeric($feed_id)
 			&& $feed_id <> 'unreaded'
 			&& $feed_id <> 'starred'
+			&& $feed_id <> 'lastreaded'
 		) {
 			$search_string = $feed_id;
 			$feed_id = 'search';
+
+			$chunks = explode(' ', $search_string);
+			foreach ($chunks as $chunk) {
+				$chunks2[] = "<em class=\"highlight\">" . $chunk . "</em>";
+			}
 		} else {
 			$search_string = NULL;
 		}
@@ -59,6 +65,8 @@ class Posts extends ControllerBase
 
 			if ($feed_id == 'unreaded' || $feed_id == 'starred') {
 				$data->name		= ucfirst($feed_id) . ' posts';
+			} elseif ($feed_id == 'lastreaded') {
+				$data->name		= 'Last readed posts';
 			} elseif ($feed_id == 'search') {
 				$data->name		= 'Search for &quot;<i>' . $search_string . '</i>&quot;';
 			}
@@ -70,6 +78,10 @@ class Posts extends ControllerBase
 
 			if ($posts) {
 				foreach ($posts as $post) {
+					if (isset($search_string)) {
+						$post->content = str_replace($chunks, $chunks2,$post->content);
+					}
+
 					$data->posts['post-' . $post->id_post] = $post;
 				}
 			} else {

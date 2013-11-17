@@ -46,6 +46,20 @@ class Config
 	}
 
 	/**
+	 * Remove
+	 *
+	 * Deletes a config option.
+	 *
+	 * @access	public
+	 * @param	string
+	 * @return	void
+	 */
+	public function remove($name)
+	{
+		unset($this->_vars[$name]);
+	}
+
+	/**
 	 * Get
 	 *
 	 * Returns the config value assigned to the inserted key.

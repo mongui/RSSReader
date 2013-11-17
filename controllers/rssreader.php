@@ -34,6 +34,7 @@ class Rssreader extends ControllerBase
 		// Is the user logged?
 		if (isset($_SESSION['id'])) {
 			$data = array();
+			$data['feed_updatable'] = $this->config->get('feed_updatable');
 
 			$this->load->helper('phone');
 			if (is_phone()) {
@@ -94,13 +95,19 @@ class Rssreader extends ControllerBase
 			$data = NULL;
 			if ($this->config->get('admin') == $_SESSION['id']) {
 				$data['is_admin']	= TRUE;
-				$data['timezones']	= file($this->config->get('document_root') . $this->config->get('index_path') . '/timezones.txt');
+				$data['timezones']	= file($this->config->get('app_path') . 'timezones.txt');
 				$data['timezones']	= array_map('trim', $data['timezones']);
 			}
 
-			echo $this->load->view('preferences', $data, TRUE);
-			//$html = $this->load->view('preferences', $data, TRUE);
-			//echo $this->minifier->minify_html($html);
+			$data['timezone']				= $this->config->get('timezone');
+			$data['minutes_between_updates']= $this->config->get('minutes_between_updates');
+			$data['max_feeds_per_update']	= $this->config->get('max_feeds_per_update');
+			$data['show_favicons']			= $this->config->get('show_favicons');
+			$data['feed_updatable']			= $this->config->get('feed_updatable');
+
+			$this->load->library('minifier');
+			$html = $this->load->view('preferences', $data, TRUE);
+			echo $this->minifier->minify_html($html);
 		}
 	}
 }

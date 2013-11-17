@@ -37,6 +37,22 @@ class Minifier
 	private $_html_files	= array();
 
 	/**
+	 * Minify the JS inside HTML?
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_js_in_html	= TRUE;
+
+	/**
+	 * Minify the CSS inside HTML?
+	 *
+	 * @var		array
+	 * @access	private
+	 */
+	private $_css_in_html	= TRUE;
+
+	/**
 	 * Clean Vars
 	 *
 	 * Resets the three variables of this class.
@@ -131,6 +147,34 @@ class Minifier
 	}
 
 	/**
+	 * Force CSS
+	 *
+	 * Set if the CSS code is minified inside the HTML code.
+	 *
+	 * @access	public
+	 * @param	bool
+	 * @return	void
+	 */
+	public function force_css($force = TRUE)
+	{
+		$this->_css_in_html = (bool)$force;
+	}
+
+	/**
+	 * Force JS
+	 *
+	 * Set if the JS code is minified inside the HTML code.
+	 *
+	 * @access	public
+	 * @param	bool
+	 * @return	void
+	 */
+	public function force_js($force = TRUE)
+	{
+		$this->_js_in_html = (bool)$force;
+	}
+
+	/**
 	 * Minify HTML
 	 *
 	 * If the parameter is filled, minifies and returns the text inserted.
@@ -155,24 +199,44 @@ class Minifier
 			  [^<]*+        # Either zero or more non-"<" {normal*}
 			  (?:           # Begin {(special normal*)*} construct
 				<           # or a < starting a non-blacklist tag.
-				(?!/?(?:textarea|pre|script)\b)
+				(?!/?(?:textarea|pre|script|option)\b)
 				[^<]*+      # more non-"<" {normal*}
 			  )*+           # Finish "unrolling-the-loop"
 			  (?:           # Begin alternation group.
 				<           # Either a blacklist start tag.
-				(?>textarea|pre|script)\b
+				(?>textarea|pre|script|option)\b
 			  | \z          # or end of file.
 			  )             # End alternation group.
 			)  # If we made it here, we are not in a blacklist tag.
 			%Six';
 		$text = preg_replace($regex, " ", $text);
 		$text = preg_replace('/<!--(?!\s*(?:\[if [^\]]+]|<!|>))(?:(?!-->).)*-->/s', '', $text);
-		$text = str_replace("> <", "><", $text);
 
+		// If there is CSS code inside the string...
+		if ($this->_css_in_html) {
+			$i = preg_match_all('/<style\b[^>]*>([\s\S]*?)<\/style>/im', $text, $matches);
+			if ($i > 0) {
+				foreach ($matches[1] as $match) {
+					$text = str_replace($match, $this->minify_css($match), $text);
+				}
+			}
+		}
+		
+		// If there is JS code inside the string...
+		if ($this->_js_in_html) {
+			$i = preg_match_all('/<script\b[^>]*>([\s\S]*?)<\/script>/im', $text, $matches);
+
+			if ($i > 0) {
+				foreach ($matches[1] as $match) {
+					$text = str_replace($match, $this->minify_js($match), $text);
+				}
+			}
+		}
+
+		$text = str_replace("> <", "><", $text);
 		if ($text === null) {
 			trigger_error('Impossible to minify: File too big.', E_USER_ERROR);
 		}
-
 		return $text;
 	}
 

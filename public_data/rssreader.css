@@ -170,6 +170,7 @@ a { outline: none; }
 
 #highlight-unreaded .sprite { background-position: 0px -37px; }
 #highlight-starred .sprite { background-position: -11px -37px; }
+#highlight-readed .sprite { background-position: -22px -37px; }
 #highlight-search .sprite { background-position: -33px -37px; }
 
 #search-form {
@@ -407,6 +408,10 @@ a { outline: none; }
 
 .content a img {
 	border: none;
+}
+
+.content em.highlight {
+	background: #FFFF00;
 }
 
 .entries .post-manager {

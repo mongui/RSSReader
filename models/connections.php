@@ -239,6 +239,39 @@ class Connections extends ModelBase
 					ORDER BY timestamp desc
 					LIMIT $next, $max
 			";
+		} elseif ($user_id && $feed_id == 'lastreaded') {
+			$sql = "
+				SET @user=$user_id;
+				SET @numrows=$max;
+				SET @next=(SELECT count(*) FROM readed_posts WHERE id_user=@user)-@numrows-$next;
+				PREPARE LSTREADED FROM 'SELECT id_post FROM readed_posts WHERE id_user=? LIMIT  ?, ?';
+			";
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+
+			$sql = "EXECUTE LSTREADED USING @user, @next, @numrows;";
+			$dbdata = $this->conn->prepare($sql);
+			$dbdata->execute();
+
+			$data = $dbdata->fetchAll(PDO::FETCH_OBJ);
+
+			foreach ($data as $dt) {
+				$readedposts[] = $dt->id_post;
+			}
+
+			$posts2 = implode(' OR p.id_post=', $readedposts);
+			$sql = "
+					SELECT
+						p.*,
+						1 AS readed,
+						(select id_post from starred_posts where id_post = p.id_post AND id_user = r.id_user) AS starred
+					FROM readed_posts r
+					LEFT JOIN posts p ON p.id_post = r.id_post
+					WHERE
+						r.id_user = $user_id AND
+						(p.id_post=$posts2)
+			";
+			unset($data, $dbdata, $posts2);
 		} elseif ($user_id) {
 			$sql = "
 					SELECT
@@ -270,7 +303,19 @@ class Connections extends ModelBase
 
 		$data = $dbdata->fetchAll(PDO::FETCH_OBJ);
 
-		if (!empty($data)) {
+		// Reorder the last readed posts and return them.
+		if (isset($readedposts) && !empty($data)) {
+			$data2 = array();
+
+			for ($i=count($readedposts)-1; $i >= 0; $i--) {
+				foreach ($data as $dtk => $dt) {
+					if ($dt->id_post == $readedposts[$i]) {
+						$data2[$dtk] = $dt;
+					}
+				}
+			}
+			return (object)$data2;
+		} elseif (!empty($data)) {
 			return $data;
 		} else {
 			return FALSE;

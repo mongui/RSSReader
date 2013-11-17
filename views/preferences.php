@@ -80,33 +80,31 @@
 		<div class="input">
 			<label for="timezone">Timezone of the server</label>
 			<select id="timezone" class="inputbox" tabindex="6">
-				<? foreach ( $timezones as $tz ): ?>
-				<option value="<?= $tz ?>" <?= ($this->config->get('timezone') == $tz) ? 'selected="selected"' : '' ?>>
-					<?= $tz ?>
-				</option>
+				<? foreach ($timezones as $tz): ?>
+				<option value="<?= $tz ?>" <?= ($timezone == $tz) ? 'selected="selected"' : '' ?>><?= $tz ?></option>
 				<? endforeach; ?>
 			</select>
 		</div>
 
 		<div class="input">
 			<label for="mins_updates">Minutes between feeds updates</label>
-			<input id="mins_updates" class="inputbox" type="text" tabindex="7" value="<?= $this->config->get('minutes_between_updates') ?>" />
+			<input id="mins_updates" class="inputbox" type="text" tabindex="7" value="<?= $minutes_between_updates ?>" />
 		</div>
 
 		<div class="input">
 			<label for="max_feeds">Max. feeds per update</label>
-			<input id="max_feeds" class="inputbox" type="text" tabindex="8" value="<?= $this->config->get('max_feeds_per_update') ?>" />
+			<input id="max_feeds" class="inputbox" type="text" tabindex="8" value="<?= $max_feeds_per_update ?>" />
 		</div>
 
 		<div class="input">
 			<label for="show_favicons">Show favicons in the feedlist</label>
-			<input id="show_favicons" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ( $this->config->get('show_favicons') ) ? 'checked="checked"' : '' ?> />
+			<input id="show_favicons" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ($show_favicons) ? 'checked="checked"' : '' ?> />
 			Yes
 		</div>
 
 		<div class="input">
 			<label for="feed_updatable">Users can update feeds</label>
-			<input id="feed_updatable" class="inputbox" type="checkbox" tabindex="10" value="1" <?= ( $this->config->get('feed_updatable') ) ? 'checked="checked"' : '' ?> />
+			<input id="feed_updatable" class="inputbox" type="checkbox" tabindex="10" value="1" <?= ($feed_updatable) ? 'checked="checked"' : '' ?> />
 			Yes
 		</div>
 	</fieldset>

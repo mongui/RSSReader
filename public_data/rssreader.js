@@ -60,6 +60,22 @@ $(document).ready(function(ev) {
 		return false;
 	});
 
+	$('#highlight-readed').click( function() {
+		loader.fadeIn();
+
+		if ( selFeed ) {
+			selFeed.removeClass('selected-feed');
+		}
+
+		loadPostlist('lastreaded', 0, function() {
+			if ( typeof isPhone != 'undefined' ) { // For phones.
+				setVSeparator();
+			}
+		});
+		loader.fadeOut();
+		return false;
+	});
+
 	function updateFeedlist() {
 		loader.fadeIn();
 
@@ -306,7 +322,7 @@ $(document).ready(function(ev) {
 
 	/* POST LIST */
 	function loadPostlist(feed, from, callback) {
-		if ( killScroll == true ) {
+		if ( killScroll == true || typeof(feed) === 'undefined' ) {
 			return;
 		}
 
@@ -691,6 +707,7 @@ $(document).ready(function(ev) {
 				setVSeparator();
 			}
 
+			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
 			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
@@ -772,6 +789,8 @@ $(document).ready(function(ev) {
 			if ( typeof isPhone != 'undefined' ) { // For phones.
 				setVSeparator();
 			}
+			
+			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
 			error.text('Can\'t reach the server. Please, try again later.').fadeIn();

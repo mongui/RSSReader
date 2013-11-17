@@ -1,5 +1,13 @@
 <?php if (!defined('MVCious')) exit('No direct script access allowed');
-
+/**
+ * Feed Updating system.
+ *
+ * @package		RSSReader
+ * @subpackage	Models
+ * @author		Gontzal Goikoetxea
+ * @link		https://github.com/mongui/RSSReader
+ * @license		http://www.apache.org/licenses/LICENSE-2.0  Apache License 2.0
+ */
 class Updater extends ModelBase
 {
 	/**
@@ -205,7 +213,7 @@ class Updater extends ModelBase
 					}
 				}
 			}
-			elseif ($return_code < 200 || $return_code > 299) {
+			elseif ($return_code >= 400 && $return_code < 500) {
 				return FALSE;
 			}
 
@@ -315,7 +323,7 @@ class Updater extends ModelBase
 			return FALSE;
 		}
 
-		// Prepar the downloaded posts and add them to the database.
+		// Prepare the downloaded posts and add them to the database.
 		foreach ($feed_data->get_items() as $item) {
 			if ($item->get_authors()) {
 				foreach ($item->get_authors() as $auth) {
@@ -327,16 +335,16 @@ class Updater extends ModelBase
 				'id_feed'			=> $feed_id,
 				'timestamp'			=> date('Y-m-d H:i:s', strtotime($item->get_date())),
 				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode (',', $authors) : '',
-				'url'				=> $item->get_link(),
+				'url'				=> str_replace('\'', '', $item->get_link()),
 				'title'				=> $item->get_title(),
 				'content'			=> $item->get_content()
 			);
 			unset($authors);
-			$or_where[] = "url = '" . $item->get_link() . "'";
+			$or_where[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
 		}
 
 		if (!empty($or_where)) {
-			$or_where = 'WHERE ' . implode(' OR ', $or_where);
+			$or_where = 'WHERE ' . implode(" OR \n", $or_where);
 		} else {
 			$or_where = '';
 		}

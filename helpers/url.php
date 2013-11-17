@@ -18,18 +18,26 @@
  *
  * @access	public
  * @param	string
+ * @param	bool
  * @return	void
  */
 if (!function_exists('redirect')) {
-	function redirect($uri = NULL)
+	function redirect($uri = '',  $relative = NULL)
 	{
-		if (!isset($uri)) {
+		if (strpos($uri,'://') !== false) {
+				header('Location: ' . $uri);
+				exit();
+		} else {
 			global $config;
-			$uri = $config['protocol'] . '://' . $config['server_host'] . $config['index_path'];
-		}
+			if (isset($relative)) {
+				$route = $config['server_relative_path'] . $uri;
+			} else {
+				$route = $config['server_path'] . $uri;
+			}
 
-		header('Location: ' . $uri);
-		exit();
+			header('Location: ' . $route);
+			exit();
+		}
 	}
 }
 
@@ -46,11 +54,16 @@ if (!function_exists('redirect')) {
 if (!function_exists('site_url')) {
 	function site_url($uri = '',  $relative = NULL)
 	{
-		global $config;
-		if (isset($relative)) {
-			return $config['index_path'] . $uri;
+		if (strpos($uri,'://') !== false) {
+				header('Location: ' . $uri);
+				exit();
 		} else {
-			return $config['protocol'] . '://' . $config['server_host'] . $config['index_path'] . $uri;
+			global $config;
+			if (isset($relative)) {
+				return $config['server_relative_path'] . $uri;
+			} else {
+				return $config['server_path'] . $uri;
+			}
 		}
 	}
 }

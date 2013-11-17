@@ -15,8 +15,18 @@ The best way to read your feeds. Based on the MVCious framework, RSS Reader offe
    ```
    To:
    ```
-   RewriteRule ^(.*)$ /rssreader/index.php?/$1 [L]
+   RewriteRule ^(.*)$ /YourDirectory/index.php?/$1 [L]
    ```
+
+5. Add a crontab to run a job every 5 minutes this line:
+
+
+   ```
+   php /var/www/rssreader/index.php update all
+   ```
+
+This cronjob will find new posts from all feeds in the database. Modify it to match the path to the directory where the index.php is.
+
 
 ## License ##
 Code is open-sourced software licensed under Apache 2.0 License.
