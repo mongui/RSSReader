@@ -120,7 +120,7 @@
 						<div class="author">by <span>{author}</span>.</div>
 						{content}
 					</div>
-					<div class="post-manager"><span class="sprite read"></span>Unreaded | <span class="sprite star {starred}" id="star2"></span> Starred</div>
+					<div class="post-manager"><span class="read"><i class="sprite"></i> Unreaded </span> | <span class="star {starred}" id="star2"><i class="sprite"></i> Starred </span></div>
 				</div>
 			</li>
 		</ul>

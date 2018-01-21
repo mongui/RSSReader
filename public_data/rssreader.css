@@ -358,7 +358,8 @@ pre { white-space: pre-wrap; }
 	background-color: #F7F9B1 !important;
 }
 
-.entries .star {
+.entries .star.sprite,
+.entries .star .sprite {
 	background-position: 0px -84px;
 	height: 16px;
 	width: 16px;
@@ -366,27 +367,34 @@ pre { white-space: pre-wrap; }
 	vertical-align: text-bottom;
 }
 
-.entries .star:hover {
+.entries .star:hover.sprite,
+.entries .star:hover .sprite {
 	background-position: -16px -84px;
 }
 
-.entries .starred {
+.entries .starred.sprite,
+.entries .starred .sprite {
 	background-position: -32px -84px !important;
 }
 
-.post-manager .read {
+.post-manager .read .sprite {
 	background-position: 0px -68px;
 	height: 16px;
 	width: 16px;
 	display: inline-block;
 }
 
-.post-manager .read:hover {
+.post-manager .read:hover .sprite {
 	background-position: -16px -68px;
 }
 
-.post-manager .unread {
+.post-manager .unread .sprite {
 	background-position: -32px -68px !important;
+}
+
+.post-manager .read,
+.post-manager .star {
+	cursor: pointer;
 }
 
 /**************************************************************************************************************************/
