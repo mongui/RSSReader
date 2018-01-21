@@ -191,34 +191,18 @@ class Updater extends ModelBase
 		if ($this->simplepie->error()) {
 			unset ($this->simplepie);
 			$this->simplepie = new SimplePie();
-			$file = fopen($url, 'r');
+
+			$c = curl_init($url);
+			curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
+			curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
+			curl_setopt($c, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
+
+			$content = curl_exec($c);
 
 			if (!isset($http_response_header)) {
 				$http_response_header = get_headers($url);
 			}
-
-			$return_code = @explode(' ', $http_response_header[0]);
-			$return_code = (int)$return_code[1];
-
-			if ($return_code >= 300 && $return_code <= 399) {
-				foreach ($http_response_header as $response) {
-					if (strpos($response, 'Location: ') !== FALSE) {
-						$response = str_replace('Location: ', '', $response);
-						$newurldata = $this->get_feed_by_url($response);
-						if (is_object($newurldata)) {
-							$this->change_feed_url($url, $response);
-							return $newurldata;
-						} else {
-							return FALSE;
-						}
-					}
-				}
-			}
-			elseif ($return_code >= 400 && $return_code < 500) {
-				return FALSE;
-			}
-
-			$content = stream_get_contents($file);
 
 			// Adjust the downloaded posts characters.
 			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
@@ -340,8 +324,16 @@ class Updater extends ModelBase
 
 			// Multimedia files attached.
 			if ($enclosure = $item->get_enclosure()) {
-				$multimedia_size = round($enclosure->length/1024/1024, 2);
-				if ($multimedia_size > 0) {
+				if ($enclosure->description != '' || $enclosure->length != null) {
+					$enclosure->description = nl2br($enclosure->description);
+
+					if ($enclosure->length != null) {
+						$multimedia_size = round($enclosure->length/1024/1024, 2);
+					} else {
+						$multimedia_size = 0;
+					}
+
+
 					$media_content = '<div style="border:1px solid #aaa;padding:1em;margin:1em auto;background:#eee;">
 						<strong>Multimedia:</strong> ' . $enclosure->description . '<br />
 						<a href="' . $enclosure->link . '">' . $enclosure->link . '</a> (' . ucfirst($enclosure->type) . ' format, ' . round($enclosure->length/1024/1024, 2) . ' MB)
@@ -355,7 +347,7 @@ class Updater extends ModelBase
 				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode(', ', $authors) : '',
 				'url'				=> str_replace('\'', '', $item->get_link()),
 				'title'				=> $item->get_title(),
-				'content'			=> ((count($item->get_content()) > 0 ) ? $item->get_content() : '<i>No content.</i>') . (($item->get_enclosure()->link) ? $media_content : '')
+				'content'			=> ((count($item->get_content()) > 0 ) ? $item->get_content() : '<i>No content.</i>') . ((isset($media_content)) ? $media_content : '')
 			);
 			unset($authors);
 
@@ -384,7 +376,10 @@ class Updater extends ModelBase
 			$rslt[] = $result->url;
 		}
 
-		$rslt = array_filter($rslt);
+		if (!isset($rslt)) {
+			$rslt = array();
+		}
+
 		if (!empty($data)) {
 
 			if (!empty($rslt)) {
@@ -407,7 +402,9 @@ class Updater extends ModelBase
 			$rtrn = $this->conn->prepare($sql);
 			$rtrn->execute();
 
-			$newest = strtotime($rtrn->fetchObject()->timestamp);
+			if (!empty($rslt)) {
+				$newest = strtotime($rtrn->fetchObject()->timestamp);
+			}
 
 			foreach ($data as $key => $item) {
 				if (isset($newest) && strtotime($item['timestamp']) <= $newest) {
