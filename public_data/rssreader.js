@@ -1,4 +1,4 @@
-var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, selFeedId, selPostId, hoverFeed, unreaded, killScroll, lastSelFeed;
+var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, selFeedId, selPostId, hoverFeed, unreaded, killScroll, lastSelFeed, reloadPostList;
 
 $(document).ready(function(ev) {
 	loader		= $("#loader");
@@ -20,8 +20,9 @@ $(document).ready(function(ev) {
 			var activateFeed = hashChunk[1].split('_f');
 			activateFeed = activateFeed[activateFeed.length -1];
 
-			if ( !isNaN(activateFeed) && activateFeed > 0 && activateFeed != selFeedId ) {
+			if ( !isNaN(activateFeed) && activateFeed > 0 && (activateFeed != selFeedId || reloadPostList) ) {
 				selFeedId = activateFeed;
+				reloadPostList = false;
 				loadPostlist(selFeedId, 0, function() {
 					if ( typeof isPhone != 'undefined' ) { // For phones.
 						setVSeparator();
@@ -133,15 +134,15 @@ $(document).ready(function(ev) {
 					feedList.append( addFeedToList(item) );
 				}
 
-				if ( !isNaN(selFeedId) && item.id_feed == selFeedId ) {
-					selFeed = feedList.children().last().children('a');
-				}
-				if ( typeof(selFeedId) !== 'undefined' && item.id_feed == selFeedId ) {
-					selFeed.addClass('selected-feed');
-				}
 			});
 
 			$(".list-content").sortable({ connectWith: '.list-content' });
+
+			selFeed = feedList.find('a.selected-feed');
+
+			if (reloadPostList) {
+				readHash();
+			}
 
 			$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
 			loader.fadeOut();
@@ -158,6 +159,7 @@ $(document).ready(function(ev) {
 			.replace("{id_feed}",  '#/' + textToURL(name) + '_f' + feedData.id_feed)
 			.replace("{name}", name)
 			.replace("{not_readed}", ( feedData.count > 0 ) ? 'not-readed' : '')
+			.replace("{selected}", ( typeof(selFeedId) !== 'undefined' && feedData.id_feed == selFeedId ) ? 'selected-feed' : '')
 			.replace("{count}", ( feedData.count > 0 ) ? '(' + feedData.count + ')' : '');
 
 			if ( typeof(feedData.favicon) != 'undefined' ) {
@@ -275,8 +277,9 @@ $(document).ready(function(ev) {
 				action	: 'update'
 			};
 			feeds = manageFeed(send);
-
+			reloadPostList = true;
 			updateFeedlist();
+			readHash();
 		}
 	});
 
@@ -504,7 +507,7 @@ $(document).ready(function(ev) {
 
 				$(this).parents('.entry').children('.content').children('.post-manager').children('.read').removeClass('unread');
 
-				updateFeedElement(-1);
+				updateFeedElement(-1, feeds);
 			}
 
 			killScroll = false;
@@ -513,31 +516,38 @@ $(document).ready(function(ev) {
 		e.preventDefault();
 	});
 
-	function updateFeedElement(addToCount) {
+	function updateFeedElement(addToCount, feedList) {
 		addToCount = ( addToCount == null ) ? 0 : addToCount;
 
-		$.each(feeds, function(i, item) {
-			if ( item.id_feed == selFeedId) {
-				feeds[i].count = parseInt(feeds[i].count, 10);
-				feeds[i].count = item.count + addToCount;
-				unreaded = unreaded + addToCount;
+		$.each(feedList, function(i, item) {
 
-				var insertHere = '';
-				if ( typeof(feeds[i].favicon) != 'undefined' ) {
-					insertHere += '<img src="' + feeds[i].favicon + '" alt="' + feeds[i].name + '" /> ' + feeds[i].name + ' ';
-				}
-				else {
-					insertHere += '<span class="sprite">&nbsp;</span> ' + feeds[i].name + ' ';
-				}
 
-				if ( feeds[i].count > 0 ) {
-					insertHere += '(' + feeds[i].count + ')';
-					selFeed.addClass('not-readed');
+			if ( typeof(item.folder) !== 'undefined') {
+				updateFeedElement(addToCount, item.feeds);
+			}
+			else {
+				if ( item.id_feed == selFeedId) {
+					feedList[i].count = parseInt(feedList[i].count, 10);
+					feedList[i].count = item.count + addToCount;
+					unreaded = unreaded + addToCount;
+
+					var insertHere = '';
+					if ( typeof(feedList[i].favicon) != 'undefined' ) {
+						insertHere += '<img src="' + feedList[i].favicon + '" alt="' + feedList[i].name + '" /> ' + feedList[i].name + ' ';
+					}
+					else {
+						insertHere += '<span class="sprite">&nbsp;</span> ' + feedList[i].name + ' ';
+					}
+
+					if ( feedList[i].count > 0 ) {
+						insertHere += '(' + feedList[i].count + ')';
+						selFeed.addClass('not-readed');
+					}
+					else {
+						selFeed.removeClass('not-readed');
+					}
+					selFeed.html( insertHere );
 				}
-				else {
-					selFeed.removeClass('not-readed');
-				}
-				selFeed.html( insertHere );
 			}
 		});
 
@@ -557,7 +567,7 @@ $(document).ready(function(ev) {
 				.removeClass('unread')
 				.parents('.entry').children('.title').addClass('readed');
 
-			updateFeedElement(-1);
+			updateFeedElement(-1, feeds);
 		}
 		else {
 			send.state = 0;
@@ -565,14 +575,17 @@ $(document).ready(function(ev) {
 				.addClass('unread')
 				.parents('.entry').children('.title').removeClass('readed');
 
-			updateFeedElement(1);
+			updateFeedElement(1, feeds);
 		}
 		managePost (send);
 	});
 
 	$(document).on("click", "#star1", function(e) {
+		var activatePost = $(this).parent('a').attr('href').split('_p');
+		activatePost = activatePost[activatePost.length-1];
+
 		var send = {
-			post	: selPostId,
+			post	: activatePost,
 			action	: 'starred',
 			state	: 0
 		};
