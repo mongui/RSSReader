@@ -7,6 +7,8 @@ body {
 
 a { outline: none; }
 
+pre { white-space: pre-wrap; }
+
 #templates { display: none; }
 
 .sprite {
@@ -61,6 +63,12 @@ a { outline: none; }
 	margin: 20px 15px;
 	padding: 8px 15px;
 	cursor: pointer;
+}
+
+
+#preferences-button:hover {
+	padding: 9px 15px 7px;
+	background-color: #FDF9E8;
 }
 
 #preferences-button .sprite {
@@ -127,11 +135,14 @@ a { outline: none; }
 	cursor: pointer;
 	height: 35px;
 	padding: 0 15px;
-	background: #F4F4F4;
 	font-size: 1.3em;
 	margin: 0 15px;
 	text-align: center;
 	line-height: 36px;
+}
+
+#add-feed:hover {
+	background: #FDF9E8;
 }
 
 #add-feed .sprite {

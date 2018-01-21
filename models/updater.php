@@ -12,7 +12,7 @@ class Updater extends ModelBase
 {
 	/**
 	 * Database connection object.
-	 * 
+	 *
 	 * @var		object
 	 * @access	private
 	 */
@@ -20,7 +20,7 @@ class Updater extends ModelBase
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @access	public
 	 */
 	function __construct()
@@ -32,9 +32,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Feed In Database
-	 * 
+	 *
 	 * Checks if a feed URL exists in the database.
-	 * 
+	 *
 	 * @access	public
 	 * @param	string
 	 * @return	object
@@ -60,9 +60,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Change Feed Last Update
-	 * 
+	 *
 	 * Refreshes the last_update column of a feed.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @return	void
@@ -81,9 +81,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Feeds Not Updated
-	 * 
+	 *
 	 * Returns the list of feeds not updated for a period.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @param	integer
@@ -114,9 +114,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Insert Feed
-	 * 
+	 *
 	 * Adds a feed to the Feeds table and to the User_feed table.
-	 * 
+	 *
 	 * @access	public
 	 * @param	string
 	 * @param	integer
@@ -133,7 +133,8 @@ class Updater extends ModelBase
 			if (isset($feed_data)) {
 				// Adds to the feeds table.
 				$dbname				= preg_replace('/<[^>]*>/', '', $feed_data->get_title());
-				$dbfavicon			= 'http://g.etfv.co/' . urlencode($feed_data->get_link());
+				//$dbfavicon			= 'http://g.etfv.co/' . urlencode($feed_data->get_link());
+				$dbfavicon			= 'http://www.google.com/s2/favicons?domain_url=' . urlencode($feed_data->get_link());
 				$dbsite				= $feed_data->get_link();
 				$dburl				= $feed_url;
 
@@ -156,10 +157,10 @@ class Updater extends ModelBase
 
 	/**
 	 * Get Feed By URL
-	 * 
+	 *
 	 * Downloads the feed from its URL and saves the new posts
 	 * the other data into the database.
-	 * 
+	 *
 	 * @access	public
 	 * @param	string
 	 * @param	bool
@@ -243,9 +244,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Feed Data From ID
-	 * 
+	 *
 	 * Gets the feed data stored in the database.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @return	object
@@ -267,9 +268,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Posts From Feed
-	 * 
+	 *
 	 * Returns the last posts from a feed.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @return	object
@@ -293,10 +294,10 @@ class Updater extends ModelBase
 
 	/**
 	 * Update Feed
-	 * 
+	 *
 	 * Gets the downloaded posts object, checks which of
 	 * them aren't in the database and adds them.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @return	bool
@@ -327,20 +328,41 @@ class Updater extends ModelBase
 		foreach ($feed_data->get_items() as $item) {
 			if ($item->get_authors()) {
 				foreach ($item->get_authors() as $auth) {
-					$authors[] = $auth->get_name();
+					if ($auth->get_name()) {
+						$authors[] = $auth->get_name();
+					} else if ($auth->get_email()) {
+						$authors[] = $auth->get_email();
+					}
+				}
+
+				$authors = array_filter($authors);
+			}
+
+			// Multimedia files attached.
+			if ($enclosure = $item->get_enclosure()) {
+				$multimedia_size = round($enclosure->length/1024/1024, 2);
+				if ($multimedia_size > 0) {
+					$media_content = '<div style="border:1px solid #aaa;padding:1em;margin:1em auto;background:#eee;">
+						<strong>Multimedia:</strong> ' . $enclosure->description . '<br />
+						<a href="' . $enclosure->link . '">' . $enclosure->link . '</a> (' . ucfirst($enclosure->type) . ' format, ' . round($enclosure->length/1024/1024, 2) . ' MB)
+					</div>';
 				}
 			}
 
 			$data[] = array(
 				'id_feed'			=> $feed_id,
 				'timestamp'			=> date('Y-m-d H:i:s', strtotime($item->get_date())),
-				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode (',', $authors) : '',
+				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode(', ', $authors) : '',
 				'url'				=> str_replace('\'', '', $item->get_link()),
 				'title'				=> $item->get_title(),
-				'content'			=> $item->get_content()
+				'content'			=> ((count($item->get_content()) > 0 ) ? $item->get_content() : '<i>No content.</i>') . (($item->get_enclosure()->link) ? $media_content : '')
 			);
 			unset($authors);
-			$or_where[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
+
+
+			if ($item->get_link()) {
+				$or_where[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
+			}
 		}
 
 		if (!empty($or_where)) {
@@ -349,6 +371,7 @@ class Updater extends ModelBase
 			$or_where = '';
 		}
 
+		// Filter posts by url.
 		$sql = "
 			SELECT url
 			FROM posts
@@ -357,14 +380,37 @@ class Updater extends ModelBase
 
 		$rtrn = $this->conn->prepare($sql);
 		$rtrn->execute();
-
 		foreach ($rtrn->fetchAll(PDO::FETCH_OBJ) as $result) {
 			$rslt[] = $result->url;
 		}
 
+		$rslt = array_filter($rslt);
 		if (!empty($data)) {
+
+			if (!empty($rslt)) {
+				foreach ($data as $key => $item) {
+					if (isset($rslt) && in_array($item['url'], $rslt)) {
+						unset($data[$key]);
+					}
+				}
+			}
+
+			// Filter posts by timestamp.
+			$sql = "
+				SELECT timestamp
+				FROM posts
+				WHERE id_feed = " . $feed_id . "
+				ORDER BY timestamp DESC
+				LIMIT 1
+			";
+
+			$rtrn = $this->conn->prepare($sql);
+			$rtrn->execute();
+
+			$newest = strtotime($rtrn->fetchObject()->timestamp);
+
 			foreach ($data as $key => $item) {
-				if (isset($rslt) && in_array($item['url'], $rslt)) {
+				if (isset($newest) && strtotime($item['timestamp']) <= $newest) {
 					unset($data[$key]);
 				}
 			}
@@ -377,7 +423,7 @@ class Updater extends ModelBase
 				$sql = '
 					INSERT INTO posts
 					(id_feed, timestamp, author, url, title, content)
-					VALUES 
+					VALUES
 				';
 				$total = array_fill(0, count($data), '(?, ?, ?, ?, ?, ?)');
 				$sql .= implode(', ', $total);
@@ -405,9 +451,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Change Feed URL
-	 * 
+	 *
 	 * Nothing to explain here.
-	 * 
+	 *
 	 * @access	public
 	 * @param	string
 	 * @param	string
@@ -423,8 +469,8 @@ class Updater extends ModelBase
 			$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 			$sql = "
-				UPDATE feeds 
-				SET url = '$newurl' 
+				UPDATE feeds
+				SET url = '$newurl'
 				WHERE url LIKE '$oldurl'
 			";
 
@@ -437,9 +483,9 @@ class Updater extends ModelBase
 
 	/**
 	 * Active Feed.
-	 * 
+	 *
 	 * Allows a feed to be updatable or not.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @param	bool
@@ -464,7 +510,7 @@ class Updater extends ModelBase
 
 			$sql = '
 				UPDATE feeds
-				SET active = ' . $active . ' 
+				SET active = ' . $active . '
 				WHERE id_feed = ' . $feed . '
 			';
 

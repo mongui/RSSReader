@@ -98,7 +98,7 @@ abstract class ModelBase
 	 */
 	private function _set_connection($connection)
 	{
-		$attribs = array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'");
+		$attribs = array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'", PDO::ATTR_PERSISTENT => true);
 
 		if ($this->driver_available($connection['type'])) {
 			switch ($connection['type']) {

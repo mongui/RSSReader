@@ -1,4 +1,4 @@
-var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, hoverFeed, unreaded, killScroll, lastSelFeed;
+var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, selFeedId, selPostId, hoverFeed, unreaded, killScroll, lastSelFeed;
 
 $(document).ready(function(ev) {
 	loader		= $("#loader");
@@ -10,6 +10,41 @@ $(document).ready(function(ev) {
 	postList	= $("#post-list");
 	separator	= $("#separator");
 	killScroll	= false;
+
+	/* LOAD FROM HASH */
+	function readHash() {
+		var hash = window.location.hash;
+		var hashChunk = window.location.hash.split('/');
+
+		if ( typeof hashChunk[1] !== 'undefined' && hashChunk[1] !== '#' && hashChunk[1] !== '' ) {
+			var activateFeed = hashChunk[1].split('_f');
+			activateFeed = activateFeed[activateFeed.length -1];
+
+			if ( !isNaN(activateFeed) && activateFeed > 0 && activateFeed != selFeedId ) {
+				selFeedId = activateFeed;
+				loadPostlist(selFeedId, 0, function() {
+					if ( typeof isPhone != 'undefined' ) { // For phones.
+						setVSeparator();
+					}
+				});
+			}
+		}
+
+		if ( typeof hashChunk[2] !== 'undefined' && hashChunk[2] !== '' ) {
+			var activatePost = hashChunk[2].split('_p');
+			activatePost = activatePost[activatePost.length -1];
+
+			if ( !isNaN(activatePost) && activatePost > 0 ) {
+				selPostId = activatePost;
+			}
+		}
+		else {
+			selPostId = undefined;
+		}
+	}
+
+	$(window).on('hashchange', function() { readHash(); });
+	/* END LOAD FROM HASH */
 
 	/* FEED LIST  */
 	updateFeedlist();
@@ -88,6 +123,8 @@ $(document).ready(function(ev) {
 			feedList.html('');
 			unreaded = 0;
 
+			readHash();
+
 			$.each(feeds, function(i, item) {
 				if ( typeof item.folder !== 'undefined' ) {
 					feedList.append( addFolderToList(item) );
@@ -95,21 +132,18 @@ $(document).ready(function(ev) {
 				else {
 					feedList.append( addFeedToList(item) );
 				}
-			});
 
-			if ( selFeed ) {
-				var prevSelected = selFeed.attr("href");
-				$.each(feedList.children('li'), function(i, item) {
-					if ( $(item.children[0]).attr('href') == prevSelected ) {
-						selFeed = $(item.children[0]);
-						selFeed.addClass('selected-feed');
-					}
-				});
-			}
+				if ( !isNaN(selFeedId) && item.id_feed == selFeedId ) {
+					selFeed = feedList.children().last().children('a');
+				}
+				if ( typeof(selFeedId) !== 'undefined' && item.id_feed == selFeedId ) {
+					selFeed.addClass('selected-feed');
+				}
+			});
 
 			$(".list-content").sortable({ connectWith: '.list-content' });
 
-			$('title').html('RSS Reader (' + unreaded + ')');
+			$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
 			loader.fadeOut();
 		}).fail(function() {
 			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
@@ -119,9 +153,10 @@ $(document).ready(function(ev) {
 
 	function addFeedToList ( feedData ) {
 		feedsTmpl = $("#feeds-tmpl").html();
+		name = (feedData.name !== '') ? feedData.name : 'No name';
 		feedsTmpl = feedsTmpl
-			.replace("{id_feed}", feedData.id_feed)
-			.replace("{name}", feedData.name)
+			.replace("{id_feed}",  '#/' + textToURL(name) + '_f' + feedData.id_feed)
+			.replace("{name}", name)
 			.replace("{not_readed}", ( feedData.count > 0 ) ? 'not-readed' : '')
 			.replace("{count}", ( feedData.count > 0 ) ? '(' + feedData.count + ')' : '');
 
@@ -164,19 +199,21 @@ $(document).ready(function(ev) {
 		});
 	});
 
-	$(document).on("click", "a.item_link", function() {
+	$(document).on("click", "a.item_link", function(e) {
 		if ( selFeed ) {
 			selFeed.removeClass('selected-feed');
 		}
 		selFeed = $(this).addClass('selected-feed');
 
-		loadPostlist(selFeed.attr("href"), 0, function() {
-			if ( typeof isPhone != 'undefined' ) { // For phones.
-				setVSeparator();
+		var name = '';
+		$.each(feeds, function(i, item) {
+			if ( item.id_feed === filterFeedURL(selFeed.attr('href')) ) {
+				name = item.name;
+				return false;
 			}
 		});
 
-		return false;
+		e.stopPropagation();
 	});
 
 	// I don't know why if I use this outerHeight inside the .feed-menu/click,
@@ -190,7 +227,7 @@ $(document).ready(function(ev) {
 			$('#add-to-folder').show();
 		}
 
-		hoverFeed = $(this).prev('.item_link').attr('href');
+		hoverFeed = filterFeedURL($(this).prev('.item_link').attr('href'));
 
 		var x = $(document).width() - $(this).offset().left - $(this).outerWidth();
 		var y = $(this).offset().top + $(this).outerHeight();
@@ -280,20 +317,7 @@ $(document).ready(function(ev) {
 			if ( typeof nfolder !== 'string' || nfolder == '' ) {
 				return;
 			}
-/*
-			$( "#feed-list li" ).each(function (i) {
-				if ( $(this).children('a').attr('href') == hoverFeed ) {
-					var feedLi = $(this).html();
 
-					var fldrTmpl = $("#feeds-tmpl2 .folder").html();
-					fldrTmpl = fldrTmpl
-										.replace("{name}", nfolder)
-										.replace("{feed}", '<li>'+feedLi+'</li>');
-
-					$(this).html(fldrTmpl).addClass('folder');
-				}
-			});
-*/
 			$(".list-content").sortable({ connectWith: '.list-content' });
 
 			var send = {
@@ -373,7 +397,10 @@ $(document).ready(function(ev) {
 				postList.children('.feed-title').children('.feed-last-update').hide();
 			}
 
+			var NXTselPostId = undefined;
 			if ( typeof plist.posts !== 'undefined' ) {
+				var hashChunk = window.location.hash.split('/');
+
 				$.each(plist.posts, function(i, item) {
 					postsTmpl = postBase;
 					readed = (item.readed > 0) ? 'readed' : '';
@@ -384,7 +411,7 @@ $(document).ready(function(ev) {
 						.replace("{starred}", starred)
 						.replace("{starred}", starred)
 
-						.replace("{id_post}", item.id_post)
+						.replace("{id_post}", (typeof hashChunk[1] !== 'undefined') ? (hashChunk[1] + '/' + textToURL(item.title) + '_p' + item.id_post) : item.id_post)
 						.replace("{title}", item.title)
 						.replace("{timestamp}", item.timestamp)
 						.replace("{url}", item.url)
@@ -393,6 +420,10 @@ $(document).ready(function(ev) {
 						.replace("{author}", ( item.author != '' ) ? item.author : 'Anonymous');
 
 					postList.children('.entries').append(postsTmpl);
+
+					if ( selPostId == item.id_post ) {
+						NXTselPostId = item.id_post;
+					}
 				});
 			}
 
@@ -407,6 +438,18 @@ $(document).ready(function(ev) {
 				});
 			}
 			lastSelFeed = feed;
+
+			if ( !isNaN(NXTselPostId) && !isNaN(selPostId) && selPostId > 0 ) {
+				$("li.entry").each(function() {
+					var activatePost = $(this).children('a').attr('href').split('_p');
+					activatePost = activatePost[activatePost.length -1];
+
+					if ( activatePost == NXTselPostId ) {
+						$(this).children('a').click();
+					}
+				});
+			}
+
 			killScroll = false;
 
 			loader.fadeOut();
@@ -423,6 +466,15 @@ $(document).ready(function(ev) {
 		if ( selPost ) {
 			selPost.removeClass('selected-post');
 		}
+
+		var activatePost = $(this).attr('href').split('_p');
+		activatePost = activatePost[activatePost.length -1];
+
+		if ( !isNaN(activatePost) && activatePost > 0  && selPostId != activatePost ) {
+			selPostId = activatePost;
+			window.location.hash = '/' + $(this).attr('href');
+		}
+
 		selPost = $(this).addClass('selected-post');
 
 		var content = $(this).next("div.content");
@@ -434,7 +486,7 @@ $(document).ready(function(ev) {
 		});
 
 		if ( content.css('display') != 'block' ) {
-			content.html( content.html().replace("{content}", posts.posts['post-' + selPost.attr("href")].content) );
+			content.html( content.html().replace("{content}", posts.posts['post-' + selPostId].content) );
 		}
 
 		postList.animate({scrollTop: selPost.offset().top - header.height()}, '500');
@@ -442,7 +494,7 @@ $(document).ready(function(ev) {
 		content.slideToggle( 400, function() {
 			if ( content.css('display') == 'block' && !$(this).prev().hasClass('readed') ) {
 				var send = {
-					post	: selPost.attr("href"),
+					post	: selPostId,
 					action	: 'readed',
 					state	: 1
 				};
@@ -465,7 +517,7 @@ $(document).ready(function(ev) {
 		addToCount = ( addToCount == null ) ? 0 : addToCount;
 
 		$.each(feeds, function(i, item) {
-			if ( item.id_feed == selFeed.attr("href")) {
+			if ( item.id_feed == selFeedId) {
 				feeds[i].count = parseInt(feeds[i].count, 10);
 				feeds[i].count = item.count + addToCount;
 				unreaded = unreaded + addToCount;
@@ -489,12 +541,12 @@ $(document).ready(function(ev) {
 			}
 		});
 
-		$('title').html('RSS Reader (' + unreaded + ')');
+		$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
 	}
 
 	$(document).on("click", ".read", function(e) {
 		var send = {
-			post	: $(this).parents('.entry').children('.title').attr("href"),
+			post	: selPostId,
 			action	: 'readed',
 			state	: 0
 		};
@@ -520,7 +572,7 @@ $(document).ready(function(ev) {
 
 	$(document).on("click", "#star1", function(e) {
 		var send = {
-			post	: $(this).parent().attr("href"),
+			post	: selPostId,
 			action	: 'starred',
 			state	: 0
 		};
@@ -545,7 +597,7 @@ $(document).ready(function(ev) {
 
 	$(document).on("click", "#star2", function(e) {
 		var send = {
-			post	: $(this).parents('.entry').children('a').attr("href"),
+			post	: selPostId,
 			action	: 'starred',
 			state	: 0
 		};
@@ -789,7 +841,7 @@ $(document).ready(function(ev) {
 			if ( typeof isPhone != 'undefined' ) { // For phones.
 				setVSeparator();
 			}
-			
+
 			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
@@ -944,6 +996,18 @@ function setVSeparator() {
 }
 /* END SEPARATOR */
 
+function textToURL(text) {
+	non_asciis = {'a': '[àáâãäå]', 'ae': 'æ', 'c': 'ç', 'e': '[èéêë]', 'i': '[ìíîï]', 'n': 'ñ', 'o': '[òóôõö]', 'oe': 'œ', 'u': '[ùúûűü]', 'y': '[ýÿ]'};
+	for (i in non_asciis) { text = text.replace(new RegExp(non_asciis[i], 'g'), i); }
+	return text.trim().toLowerCase().replace(/ +/g,'_').replace(/[^a-z0-9-_]/g,'');
+}
+
+function filterFeedURL(text) {
+	var hashChunk = text.split('/');
+	var fd = hashChunk[1].split('_f');
+	return fd[fd.length -1];
+}
+
 function createCookie(name, value) {
 	var date = new Date();
 	date.setTime(date.getTime() + (9999 * 24 * 60 * 60 * 1000));
@@ -1004,7 +1068,7 @@ function sendList(elements) {
 		}
 		else {
 			if ( inFolder > 0 ) {
-				subelmnts.push( $(this).children('a').attr('href') );
+				subelmnts.push( filterFeedURL($(this).children('a').attr('href')) );
 				inFolder = inFolder - 1;
 				if ( inFolder == 0 ) {
 					elmnts.push( { folder: folderId, value: subelmnts } );
@@ -1012,7 +1076,7 @@ function sendList(elements) {
 				}
 			}
 			else {
-				elmnts.push( $(this).children('a').attr('href') );
+				elmnts.push( filterFeedURL($(this).children('a').attr('href')) );
 			}
 		}
 	});
