@@ -957,20 +957,19 @@ $(document).ready(function(ev) {
 
 	var rss_sepwidth = readCookie('rss_sepwidth');
 	var widthCookie;
-	$(window).load(function(ev) {
-		if ( typeof isPhone != 'undefined' ) { // For phones.
-			feedPanelHeight = $(window).height() - 30; // 30 from #separator
-		}
-		else {
-			getSeparator();
-			setSeparator(rss_sepwidth);
-			postList.show();
-			sep = null;
+	// Done on DOM ready instead of window load, so the layout
+	// doesn't wait for every image and favicon to be downloaded.
+	if ( typeof isPhone != 'undefined' ) { // For phones.
+		feedPanelHeight = $(window).height() - 30; // 30 from #separator
+	}
+	else {
+		getSeparator();
+		setSeparator(rss_sepwidth);
+		postList.show();
+		sep = null;
 
-			$("#wrapper").height( ($(window).height() - 75) );
-		}
-
-	});
+		$("#wrapper").height( ($(window).height() - 75) );
+	}
 	/* END SEPARATOR */
 });
 

@@ -119,6 +119,7 @@ pre { white-space: pre-wrap; }
 
 #wrapper {
 	height: 90%;
+	height: calc(100vh - 75px); /* Same as rssreader.js, so it's right before the JS runs. */
 	margin: 0px;
 	padding: 0px;
 }
