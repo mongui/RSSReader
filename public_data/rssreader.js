@@ -11,6 +11,13 @@ $(document).ready(function(ev) {
 	separator	= $("#separator");
 	killScroll	= false;
 
+	// Session lost: send the user to the login.
+	$(document).ajaxError(function(e, jqXHR) {
+		if (jqXHR.status == 401) {
+			window.location.href = 'login';
+		}
+	});
+
 	/* LOAD FROM HASH */
 	function readHash() {
 		var hash = window.location.hash;

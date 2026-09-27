@@ -21,6 +21,12 @@ class Posts extends ControllerBase
 			session_start();
 		}
 
+		// Session lost: AJAX calls get a 401 and the page sends the user to the login.
+		if (!isset($_SESSION['id'])) {
+			header('HTTP/1.1 401 Unauthorized');
+			exit;
+		}
+
 		$this->load->model('connections');
 	}
 

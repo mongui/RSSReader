@@ -58,6 +58,12 @@ class Rssreader extends ControllerBase
 	 */
 	public function preferences()
 	{
+		// Session lost: AJAX calls get a 401 and the page sends the user to the login.
+		if (!isset($_SESSION['id'])) {
+			header('HTTP/1.1 401 Unauthorized');
+			exit;
+		}
+
 		if(isset($_POST['timeformat']) && isset($_POST['language'])) {
 			$userdata = array (
 							'time_format'	=> filter_var($_POST['timeformat'], FILTER_SANITIZE_STRING),
