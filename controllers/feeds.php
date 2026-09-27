@@ -156,6 +156,7 @@ class Feeds extends ControllerBase
 				echo 'failure';
 			}
 		} else {
+			$this->load->helper('lang');
 			$html = $this->load->view('importfile', NULL, TRUE);
 			$this->load->library('minifier');
 			echo $this->minifier->minify_html($html);

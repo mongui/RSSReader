@@ -154,14 +154,14 @@ $(document).ready(function(ev) {
 			$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
 			loader.fadeOut();
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	}
 
 	function addFeedToList ( feedData ) {
 		feedsTmpl = $("#feeds-tmpl").html();
-		name = (feedData.name !== '') ? feedData.name : 'No name';
+		name = (feedData.name !== '') ? feedData.name : t('No name');
 		feedsTmpl = feedsTmpl
 			.replace("{id_feed}",  '#/' + textToURL(name) + '_f' + feedData.id_feed)
 			.replace("{name}", name)
@@ -312,7 +312,7 @@ $(document).ready(function(ev) {
 			var send = {
 				feed	: hoverFeed,
 				action	: 'name',
-				value	: prompt("Please enter the new feed name:", name)
+				value	: prompt(t("Please enter the new feed name:"), name)
 			};
 			feeds = manageFeed(send);
 
@@ -322,7 +322,7 @@ $(document).ready(function(ev) {
 
 	$('#add-to-folder').click( function() {
 		if ( !isNaN(hoverFeed) ) {
-			var nfolder = prompt("New folder name:", "New folder");
+			var nfolder = prompt(t("New folder name:"), t("New folder"));
 
 			if ( typeof nfolder !== 'string' || nfolder == '' ) {
 				return;
@@ -342,7 +342,7 @@ $(document).ready(function(ev) {
 	});
 
 	$('#unsubscribe').click( function(e) {
-		if ( !isNaN(hoverFeed) && confirm('Are you sure you want to unsubscribe from this feed?') ) {
+		if ( !isNaN(hoverFeed) && confirm(t('Are you sure you want to unsubscribe from this feed?')) ) {
 			var send = {
 				feed	: hoverFeed,
 				action	: 'unsubscribe'
@@ -464,7 +464,7 @@ $(document).ready(function(ev) {
 
 			loader.fadeOut();
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 			killScroll = false;
 		});
@@ -682,10 +682,10 @@ $(document).ready(function(ev) {
 			$("#add-form").hide();
 			updateFeedlist();
 
-			success.text('The feed was successfully added.').fadeIn();
+			success.text(t('The feed was successfully added.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
@@ -780,7 +780,7 @@ $(document).ready(function(ev) {
 			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	});
@@ -796,15 +796,15 @@ $(document).ready(function(ev) {
 
 		if ( newPassword != '' || newPassword2 != '' ) {
 			if ( newPassword.length < 6 ) {
-				error.text('Your password must be at least 6 characters.').fadeIn();
+				error.text(t('Your password must be at least 6 characters.')).fadeIn();
 				return false;
 			}
 			else if ( newPassword !== newPassword2 ) {
-				error.text('Passwords do not match.').fadeIn();
+				error.text(t('Passwords do not match.')).fadeIn();
 				return false;
 			}
 			else if ( curPassword === '' ) {
-				error.text('We need your current password to verify your identity.').fadeIn();
+				error.text(t('We need your current password to verify your identity.')).fadeIn();
 				return false;
 			}
 			else {
@@ -832,18 +832,24 @@ $(document).ready(function(ev) {
 			data	: prefData
 		}).done(function(msg) {
 			if ( msg === 'success' ) {
-				success.text('Data saved.').fadeIn();
+				// The texts are translated on the server, so the page is reloaded with the new language.
+				if ( prefData.language != language ) {
+					window.location.reload();
+					return;
+				}
+
+				success.text(t('Data saved.')).fadeIn();
 			}
 			else if ( msg === 'curPass' ) {
-				error.text('Your current password is not correct.').fadeIn();
+				error.text(t('Your current password is not correct.')).fadeIn();
 			}
 			else {
-				error.text('Something wrong happened. We can\'t save your preferences now. Sorry.').fadeIn();
+				error.text(t('Something wrong happened. We can\'t save your preferences now. Sorry.')).fadeIn();
 			}
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 		return false;
@@ -863,7 +869,7 @@ $(document).ready(function(ev) {
 			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
-			error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 	});
@@ -885,7 +891,7 @@ $(document).ready(function(ev) {
 	$(document).on("click", "#submit-file", function() {
 		loader.fadeIn();
 		if ( $("#import-file").val() == '' ) {
-			error.text('Select a file first.').fadeIn();
+			error.text(t('Select a file first.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 			return false;
 		}
@@ -896,19 +902,19 @@ $(document).ready(function(ev) {
 			var subInt = self.setInterval(function() {
 				if ( $.trim(subForm.contents().find('body').html()) == 'success' ) {
 					subInt = window.clearInterval(subInt);
-					success.text('File successfully uploaded.').fadeIn();
+					success.text(t('File successfully uploaded.')).fadeIn();
 					setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 					updateFeedlist();
 				}
 				else if ( $.trim(subForm.contents().find('body').html()) == 'failure' ) {
 					subInt = window.clearInterval(subInt);
-					error.text('The file you tried to upload is not compatible.').fadeIn();
+					error.text(t('The file you tried to upload is not compatible.')).fadeIn();
 					setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 				}
 				else {
 					if ( count >= 15 ) {
 						subInt = window.clearInterval(subInt);
-						error.text('Something wrong happened. We can\'t upload your file now. Sorry.').fadeIn();
+						error.text(t('Something wrong happened. We can\'t upload your file now. Sorry.')).fadeIn();
 						setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 					}
 
@@ -1047,6 +1053,12 @@ function eraseCookie(name) {
 	createCookie(name, "", -1);
 }
 
+/* TRANSLATIONS */
+// Returns the translation of an English text (see languages/*.php).
+function t(text) {
+	return ( typeof lang !== 'undefined' && lang[text] ) ? lang[text] : text;
+}
+
 function manageFeed(send) {
 	$.ajax({
 		type	: "POST",
@@ -1055,7 +1067,7 @@ function manageFeed(send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+		error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }
@@ -1068,7 +1080,7 @@ function managePost(send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		error.text('Can\'t reach the server. Please, try again later.').fadeIn();
+		error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }

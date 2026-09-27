@@ -22,6 +22,7 @@ class Rssreader extends ControllerBase
 		}
 		
 		$this->load->model('configuration');
+		$this->load->helper('lang');
 	}
 
 	/**

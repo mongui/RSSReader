@@ -4,14 +4,14 @@
 		var language = '<?= $_SESSION['language'] ?>';
 	</script>
 	<fieldset>
-		<legend>Your preferences</legend>
+		<legend><?= t('Your preferences') ?></legend>
 		<div class="input">
-			<label for="email">Your email</label>
+			<label for="email"><?= t('Your email') ?></label>
 			<input id="email" class="inputbox" type="text" value="<?= $_SESSION['email'] ?>" disabled="disabled" />
 		</div>
 
 		<div class="input">
-			<label for="timeformat">Display time format</label>
+			<label for="timeformat"><?= t('Display time format') ?></label>
 			<select id="timeformat" class="inputbox" tabindex="1">
 				<option value="M d, Y">Jun 24, 2013</option>
 				<option value="M d, Y H:i">Jun 24, 2013 23:56</option>
@@ -33,28 +33,28 @@
 		</div>
 
 		<div class="input">
-			<label for="language">Display language</label>
+			<label for="language"><?= t('Display language') ?></label>
 			<select id="language" class="inputbox" tabindex="2">
-				<option value="en">English</option>
-				<option value="es">Spanish</option>
+				<option value="en"><?= t('English') ?></option>
+				<option value="es"><?= t('Spanish') ?></option>
 			</select>
 		</div>
 	</fieldset>
 
 	<fieldset>
-		<legend>Change password</legend>
+		<legend><?= t('Change password') ?></legend>
 		<div class="input">
-			<label for="cur-password">Current password</label>
+			<label for="cur-password"><?= t('Current password') ?></label>
 			<input id="cur-password" class="inputbox" type="password" tabindex="3" />
 		</div>
 
 		<div class="input">
-			<label for="new-password">New password</label>
+			<label for="new-password"><?= t('New password') ?></label>
 			<input id="new-password" class="inputbox" type="password" tabindex="4" />
 		</div>
 
 		<div class="input">
-			<label for="new-password2">Repeat new password</label>
+			<label for="new-password2"><?= t('Repeat new password') ?></label>
 			<input id="new-password2" class="inputbox" type="password" tabindex="5" />
 		</div>
 	</fieldset>
@@ -75,9 +75,9 @@
 	</script>
 
 	<fieldset>
-		<legend>Server configuration</legend>
+		<legend><?= t('Server configuration') ?></legend>
 		<div class="input">
-			<label for="timezone">Timezone of the server</label>
+			<label for="timezone"><?= t('Timezone of the server') ?></label>
 			<select id="timezone" class="inputbox" tabindex="6">
 				<? foreach ($timezones as $tz): ?>
 				<option value="<?= $tz ?>" <?= ($timezone == $tz) ? 'selected="selected"' : '' ?>><?= $tz ?></option>
@@ -86,48 +86,48 @@
 		</div>
 
 		<div class="input">
-			<label for="mins_updates">Minutes between feeds updates</label>
+			<label for="mins_updates"><?= t('Minutes between feeds updates') ?></label>
 			<input id="mins_updates" class="inputbox" type="text" tabindex="7" value="<?= $minutes_between_updates ?>" />
 		</div>
 
 		<div class="input">
-			<label for="max_feeds">Max. feeds per update</label>
+			<label for="max_feeds"><?= t('Max. feeds per update') ?></label>
 			<input id="max_feeds" class="inputbox" type="text" tabindex="8" value="<?= $max_feeds_per_update ?>" />
 		</div>
 
 		<div class="input">
-			<label for="show_favicons">Show favicons in the feedlist</label>
+			<label for="show_favicons"><?= t('Show favicons in the feedlist') ?></label>
 			<input id="show_favicons" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ($show_favicons) ? 'checked="checked"' : '' ?> />
-			Yes
+			<?= t('Yes') ?>
 		</div>
 
 		<div class="input">
-			<label for="feed_updatable">Users can update feeds</label>
+			<label for="feed_updatable"><?= t('Users can update feeds') ?></label>
 			<input id="feed_updatable" class="inputbox" type="checkbox" tabindex="10" value="1" <?= ($feed_updatable) ? 'checked="checked"' : '' ?> />
-			Yes
+			<?= t('Yes') ?>
 		</div>
 	</fieldset>
 	<? endif; ?>
 
-	<button class="submit-button" id="submit-preferences">Update preferences</button>
+	<button class="submit-button" id="submit-preferences"><?= t('Update preferences') ?></button>
 </form>
 
 <? if ( isset($is_admin) ): ?>
 <div class="content-form">
 	<fieldset>
-		<legend>Global feed list</legend>
+		<legend><?= t('Global feed list') ?></legend>
 		<table>
 			<tr>
-				<th>Feed name</th>
+				<th><?= t('Feed name') ?></th>
 				<th colspan="4">Conf.</th>
 			</tr>
 			<? foreach($feed_list as $feed): ?>
 			<tr <?= ($feed->active == 0) ? 'class="inactive"' : '' ?> >
 				<td><?= $feed->name ?></td>
-				<td><a class="sprite load-feed" href="#/access_f<?= $feed->id_feed ?>"></a></td>
-				<td><i class="sprite update-feed" rel="<?= $feed->id_feed ?>"></i></td>
-				<td><i class="sprite modify-feed" rel="<?= $feed->id_feed ?>"></i></td>
-				<td><i class="delete-feed" rel="<?= $feed->id_feed ?>" title="Delete feed">&#10006;</i></td>
+				<td><a class="sprite load-feed" title="<?= t('Go to the feed') ?>" href="#/access_f<?= $feed->id_feed ?>"></a></td>
+				<td><i class="sprite update-feed" title="<?= t('Update feed') ?>" rel="<?= $feed->id_feed ?>"></i></td>
+				<td><i class="sprite modify-feed" title="<?= t('Modify feed') ?>" rel="<?= $feed->id_feed ?>"></i></td>
+				<td><i class="delete-feed" rel="<?= $feed->id_feed ?>" title="<?= t('Delete feed') ?>">&#10006;</i></td>
 			</tr>
 			<? endforeach; ?>
 		</table>
@@ -136,15 +136,15 @@
 
 <div id="modify-feed-dialog" class="hidden">
 	<form name="modify-feed-form" id="modify-feed-form" method="post">
-		<label for="modify-feed-id">Feed ID:</label><input id="modify-feed-id" type="text" disabled />
-		<label for="modify-feed-name">Feed name:</label><input id="modify-feed-name" type="text" />
-		<label for="modify-feed-site">Site main URL:</label><input id="modify-feed-site" type="text" />
-		<label for="modify-feed-url">RSS Feed URL:</label><input id="modify-feed-url" type="text" />
-		<label for="modify-feed-favicon">Favicon URL:</label><input id="modify-feed-favicon" type="text" />
-		<input id="modify-feed-active" type="checkbox" /><label for="modify-feed-active">Active</label>
+		<label for="modify-feed-id"><?= t('Feed ID:') ?></label><input id="modify-feed-id" type="text" disabled />
+		<label for="modify-feed-name"><?= t('Feed name:') ?></label><input id="modify-feed-name" type="text" />
+		<label for="modify-feed-site"><?= t('Site main URL:') ?></label><input id="modify-feed-site" type="text" />
+		<label for="modify-feed-url"><?= t('RSS Feed URL:') ?></label><input id="modify-feed-url" type="text" />
+		<label for="modify-feed-favicon"><?= t('Favicon URL:') ?></label><input id="modify-feed-favicon" type="text" />
+		<input id="modify-feed-active" type="checkbox" /><label for="modify-feed-active"><?= t('Active') ?></label>
 		<div>
-			<button id="modify-feed-cancel" class="submit-button">Cancel</button>
-			<input type="submit" id="modify-feed-update" class="submit-button" value="Update" />
+			<button id="modify-feed-cancel" class="submit-button"><?= t('Cancel') ?></button>
+			<input type="submit" id="modify-feed-update" class="submit-button" value="<?= t('Update') ?>" />
 		</div>
 	</form>
 </div>
@@ -176,7 +176,7 @@
 			loader.fadeOut();
 		}).fail(function() {
 			loader.fadeOut();
-			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
@@ -216,14 +216,14 @@
 				modifyDialog.addClass('hidden');
 				updateFeedlist();
 
-				success.text('The feed was successfully modified.').fadeIn();
+				success.text(t('The feed was successfully modified.')).fadeIn();
 			} else {
-				error.text("The feed couldn't be modified.").fadeIn();
+				error.text(t("The feed couldn't be modified.")).fadeIn();
 			}
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
 			loader.fadeOut();
-			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	});
@@ -233,7 +233,7 @@
 		var row = $(this).closest('tr');
 		var feedName = row.children('td').first().text();
 
-		if (!confirm('Delete the feed "' + feedName + '" with all its posts for every user?\n\nThis can\'t be undone.')) {
+		if (!confirm(t('Delete the feed "%s" with all its posts for every user?').replace('%s', feedName) + '\n\n' + t("This can't be undone."))) {
 			return false;
 		}
 
@@ -253,14 +253,14 @@
 				row.remove();
 				updateFeedlist();
 
-				success.text('The feed was successfully deleted.').fadeIn();
+				success.text(t('The feed was successfully deleted.')).fadeIn();
 			} else {
-				error.text("The feed couldn't be deleted.").fadeIn();
+				error.text(t("The feed couldn't be deleted.")).fadeIn();
 			}
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
 			loader.fadeOut();
-			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
