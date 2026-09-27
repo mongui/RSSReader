@@ -452,8 +452,16 @@ pre { white-space: pre-wrap; }
 	position: relative;
 }
 
-.content em.highlight {
+.content em.highlight,
+.entry .title em.highlight {
 	background: #FFFF00;
+	font-style: inherit;
+}
+
+.entries .no-posts {
+	list-style: none;
+	padding: 1em;
+	color: #888888;
 }
 
 .entries .post-manager {

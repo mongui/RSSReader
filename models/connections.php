@@ -172,18 +172,15 @@ class Connections extends ModelBase
 	 * depending of the parameters inserted:
 	 * - If feed param is 'unreaded'.
 	 * - If feed param is 'starred'.
-	 * - If feed param is 'search' and there is a search string.
 	 * - If there is just a feed ID and user ID.
 	 * - If there is just a feed ID.
 	 *
 	 * @access	public
 	 * @param	integer/string
 	 * @param	integer
-	 * @param	integer
-	 * @param	string
 	 * @return	object
 	 */
-	function posts_from_feed($feed_id, $next = 0, $user_id = NULL, $search = NULL)
+	function posts_from_feed($feed_id, $next = 0, $user_id = NULL)
 	{
 		$this->load->model('configuration');
 
@@ -213,28 +210,6 @@ class Connections extends ModelBase
 						p.id_feed = u.id_feed AND
 						u.id_user = $user_id AND
 						p.id_post IN (select id_post from starred_posts where id_post = p.id_post AND id_user = u.id_user)
-					ORDER BY timestamp desc
-					LIMIT $next, $max
-			";
-		} elseif ($user_id && $feed_id == 'search' && isset($search)) {
-			$chunks = explode(" ", $search);
-			if (count($chunks) == 1) {
-				$where = "(p.content LIKE '%$search%' OR p.title LIKE '%$search%')";
-			} else {
-				$where = "MATCH (p.title, p.content) AGAINST ('$search')";
-			}
-
-			$sql = "
-					SELECT
-						p.*, f.site,
-						(select id_post from readed_posts where id_post = p.id_post AND id_user = u.id_user) AS readed,
-						(select id_post from starred_posts where id_post = p.id_post AND id_user = u.id_user) AS starred
-					FROM posts p, user_feed u, feeds f
-					WHERE
-						p.id_feed = u.id_feed AND
-						p.id_feed = f.id_feed AND
-						u.id_user = $user_id AND
-						$where
 					ORDER BY timestamp desc
 					LIMIT $next, $max
 			";
@@ -844,6 +819,377 @@ class Connections extends ModelBase
 			}
 		} catch (PDOException $err) {
 			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	/**
+	 * Search Posts
+	 *
+	 * Searches the posts of the user's feeds, the newest first. All the terms
+	 * must appear in the title or in the visible text of the content:
+	 * - Words of 4 or more characters match the beginning of a word (cena: cenas).
+	 * - Shorter words must match whole words (IA doesn't match iatrogenia).
+	 * - "Quoted phrases" and words with symbols (wi-fi) must appear as they are.
+	 * - -word or -"phrase" excludes the posts that contain it.
+	 * Case and accents don't matter, except the ñ.
+	 *
+	 * It works in two steps: MySQL finds the candidates with the full-text index
+	 * (when it exists) and LIKE, and PHP checks the terms in the visible text,
+	 * so the HTML code of the posts (tags, URLs, embedded videos) isn't searched.
+	 *
+	 * @access	public
+	 * @param	integer
+	 * @param	string
+	 * @param	string	Cursor returned by the previous page ("next").
+	 * @return	array	'posts' (objects) and 'next' (cursor of the next page or NULL).
+	 */
+	function search_posts($user_id, $query, $cursor = NULL)
+	{
+		$result = array('posts' => array(), 'next' => NULL);
+
+		$terms = $this->_search_parse($query);
+		if (empty($terms['include'])) {
+			return $result;
+		}
+
+		$this->load->model('configuration');
+		$max = (int) $this->config->get('max_posts_to_show');
+		if ($max < 1) {
+			$max = 50;
+		}
+
+		// Candidates checked in PHP on every request, at most.
+		$window = 1000;
+
+		// Cursor: "mode|timestamp|id_post" of the last candidate checked.
+		// Mode: 'f' = full-text index, 'l' = LIKE only.
+		$mode = NULL;
+		$after = NULL;
+		if ($cursor !== NULL && preg_match('/^([fl])\|(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\|(\d+)$/', $cursor, $m)) {
+			$mode = $m[1];
+			$after = array($m[2], (int) $m[3]);
+		}
+
+		$min_length = $this->_search_fulltext_min_length();
+		$match_words = array();
+		if ($min_length) {
+			foreach ($terms['words'] as $word) {
+				$length = mb_strlen($word, 'UTF-8');
+				if ($length >= $min_length && $length <= 84) {
+					$match_words[] = $word;
+				}
+			}
+		}
+
+		if ($mode === NULL) {
+			$mode = empty($match_words) ? 'l' : 'f';
+		}
+
+		$candidates = $this->_search_candidates($user_id, $terms['words'], ($mode == 'f') ? $match_words : array(), $after, $window);
+
+		// The full-text index ignores some words (e.g. its stopwords), so if it
+		// doesn't find anything, the search is done again with LIKE only.
+		if (empty($candidates) && $mode == 'f' && $after === NULL) {
+			$mode = 'l';
+			$candidates = $this->_search_candidates($user_id, $terms['words'], array(), NULL, $window);
+		}
+
+		$last = NULL;
+		foreach (array_chunk($candidates, 50) as $chunk) {
+			$rows = $this->_search_rows($user_id, $chunk);
+
+			foreach ($chunk as $candidate) {
+				$last = $candidate;
+
+				if (isset($rows[$candidate->id_post]) && $this->_search_matches($rows[$candidate->id_post], $terms)) {
+					$result['posts'][] = $rows[$candidate->id_post];
+
+					if (count($result['posts']) >= $max) {
+						break 2;
+					}
+				}
+			}
+		}
+
+		// There can be more results if the page is full or all the candidates were checked.
+		if ($last !== NULL && (count($result['posts']) >= $max || count($candidates) >= $window)) {
+			$result['next'] = $mode . '|' . $last->timestamp . '|' . $last->id_post;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Search Parse
+	 *
+	 * Splits the search string in terms. Every term is a list of normalized
+	 * words that must appear one after the other.
+	 *
+	 * @access	private
+	 * @param	string
+	 * @return	array	'include' and 'exclude' terms, and 'words' of the included terms.
+	 */
+	private function _search_parse($query)
+	{
+		$terms = array('include' => array(), 'exclude' => array(), 'words' => array());
+
+		$query = mb_substr(trim((string) $query), 0, 200, 'UTF-8');
+		preg_match_all('/(-?)"([^"]*)"|(\S+)/u', $query, $tokens, PREG_SET_ORDER);
+
+		foreach ($tokens as $token) {
+			if (isset($token[3]) && $token[3] !== '') {
+				$text = $token[3];
+				$exclude = (strlen($text) > 1 && $text[0] == '-');
+				if ($exclude) {
+					$text = substr($text, 1);
+				}
+				$quoted = FALSE;
+			} else {
+				$text = $token[2];
+				$exclude = ($token[1] == '-');
+				$quoted = TRUE;
+			}
+
+			$words = preg_split('/[^\p{L}\p{N}]+/u', $this->_search_normalize($text), -1, PREG_SPLIT_NO_EMPTY);
+			if (empty($words)) {
+				continue;
+			}
+
+			// A single word of 4 or more characters matches the beginning of words.
+			$prefix = (!$quoted && count($words) == 1 && mb_strlen($words[0], 'UTF-8') >= 4);
+
+			$regex = '/(?<![\p{L}\p{N}])' . implode('[^\p{L}\p{N}]+', array_map(function ($word) {
+				return preg_quote($word, '/');
+			}, $words)) . ($prefix ? '' : '(?![\p{L}\p{N}])') . '/u';
+
+			if ($exclude) {
+				$terms['exclude'][] = $regex;
+			} else {
+				$terms['include'][] = $regex;
+				foreach ($words as $word) {
+					$terms['words'][$word] = $word;
+				}
+			}
+
+			// Too many terms make the queries slow.
+			if (count($terms['include']) + count($terms['exclude']) >= 10) {
+				break;
+			}
+		}
+
+		$terms['words'] = array_values($terms['words']);
+
+		return $terms;
+	}
+
+	/**
+	 * Search Normalize
+	 *
+	 * Lower case and without accents (the ñ is kept), so it can be compared.
+	 *
+	 * @access	private
+	 * @param	string
+	 * @return	string
+	 */
+	private function _search_normalize($text)
+	{
+		if (function_exists('mb_scrub')) {
+			$text = mb_scrub($text, 'UTF-8');
+		}
+
+		return strtr(mb_strtolower($text, 'UTF-8'), array(
+			'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a', 'å' => 'a',
+			'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+			'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
+			'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o',
+			'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
+			'ç' => 'c', 'ý' => 'y', 'ÿ' => 'y'
+		));
+	}
+
+	/**
+	 * Search Fulltext Min Length
+	 *
+	 * Returns the minimum length of the words of the full-text index on
+	 * posts (title, content), or 0 if the index doesn't exist.
+	 *
+	 * @access	private
+	 * @return	integer
+	 */
+	private function _search_fulltext_min_length()
+	{
+		static $min_length = NULL;
+
+		if ($min_length !== NULL) {
+			return $min_length;
+		}
+
+		$min_length = 0;
+
+		try {
+			$indexes = $this->conn->query("SHOW INDEX FROM posts WHERE Index_type = 'FULLTEXT'");
+			if (!$indexes) {
+				return $min_length;
+			}
+
+			$columns = array();
+			foreach ($indexes->fetchAll(PDO::FETCH_OBJ) as $index) {
+				$columns[$index->Key_name][] = strtolower($index->Column_name);
+			}
+
+			foreach ($columns as $key_columns) {
+				sort($key_columns);
+				if ($key_columns != array('content', 'title')) {
+					continue;
+				}
+
+				$status = $this->conn->query("SHOW TABLE STATUS LIKE 'posts'");
+				$engine = $status ? strtolower($status->fetchObject()->Engine) : 'myisam';
+				$variable = ($engine == 'innodb') ? 'innodb_ft_min_token_size' : 'ft_min_word_len';
+
+				$value = $this->conn->query("SHOW VARIABLES LIKE '$variable'");
+				$value = $value ? $value->fetchObject() : FALSE;
+				$min_length = ($value && (int) $value->Value > 0) ? (int) $value->Value : 4;
+			}
+		} catch (PDOException $err) {
+			$min_length = 0;
+		}
+
+		return $min_length;
+	}
+
+	/**
+	 * Search Candidates
+	 *
+	 * Returns id_post and timestamp of the posts that may match the search,
+	 * the newest first. The words are searched with the full-text index
+	 * ($match_words) or with LIKE (the rest).
+	 *
+	 * @access	private
+	 * @param	integer
+	 * @param	array
+	 * @param	array
+	 * @param	array	Timestamp and id_post of the last candidate of the previous page.
+	 * @param	integer
+	 * @return	array
+	 */
+	private function _search_candidates($user_id, $words, $match_words, $after, $limit)
+	{
+		$where = array('u.id_user = ?');
+		$params = array((int) $user_id);
+
+		if (!empty($match_words)) {
+			$where[] = 'MATCH (p.title, p.content) AGAINST (? IN BOOLEAN MODE)';
+			$params[] = '+' . implode('* +', $match_words) . '*';
+		}
+
+		foreach ($words as $word) {
+			if (in_array($word, $match_words)) {
+				continue;
+			}
+
+			$pattern = '%' . addcslashes($word, '%_\\') . '%';
+			$where[] = '(p.title LIKE ? OR p.content LIKE ?)';
+			$params[] = $pattern;
+			$params[] = $pattern;
+		}
+
+		if ($after !== NULL) {
+			$where[] = '(p.timestamp < ? OR (p.timestamp = ? AND p.id_post < ?))';
+			$params[] = $after[0];
+			$params[] = $after[0];
+			$params[] = $after[1];
+		}
+
+		$sql = '
+			SELECT p.id_post, p.timestamp
+			FROM posts p
+			INNER JOIN user_feed u ON u.id_feed = p.id_feed
+			WHERE ' . implode(' AND ', $where) . '
+			ORDER BY p.timestamp DESC, p.id_post DESC
+			LIMIT ' . (int) $limit;
+
+		// If the query fails (e.g. the full-text index can't be used), there are no
+		// candidates, and search_posts() tries again with LIKE only.
+		try {
+			$dbdata = $this->conn->prepare($sql);
+			if (!$dbdata || !$dbdata->execute($params)) {
+				return array();
+			}
+		} catch (PDOException $err) {
+			return array();
+		}
+
+		return $dbdata->fetchAll(PDO::FETCH_OBJ);
+	}
+
+	/**
+	 * Search Rows
+	 *
+	 * Returns the full data of some candidates, indexed by id_post.
+	 *
+	 * @access	private
+	 * @param	integer
+	 * @param	array
+	 * @return	array
+	 */
+	private function _search_rows($user_id, $candidates)
+	{
+		$ids = array();
+		foreach ($candidates as $candidate) {
+			$ids[] = (int) $candidate->id_post;
+		}
+
+		$sql = '
+			SELECT
+				p.*, f.site,
+				(SELECT id_post FROM readed_posts WHERE id_post = p.id_post AND id_user = ? LIMIT 1) AS readed,
+				(SELECT id_post FROM starred_posts WHERE id_post = p.id_post AND id_user = ? LIMIT 1) AS starred
+			FROM posts p
+			INNER JOIN feeds f ON f.id_feed = p.id_feed
+			WHERE p.id_post IN (' . implode(', ', $ids) . ')
+		';
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute(array((int) $user_id, (int) $user_id));
+
+		$rows = array();
+		foreach ($dbdata->fetchAll(PDO::FETCH_OBJ) as $row) {
+			$rows[$row->id_post] = $row;
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Search Matches
+	 *
+	 * Checks the terms in the visible text of the post (title and content without HTML).
+	 *
+	 * @access	private
+	 * @param	object
+	 * @param	array
+	 * @return	bool
+	 */
+	private function _search_matches($post, $terms)
+	{
+		$html = $post->title . "\n" . $post->content;
+		$html = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#is', ' ', $html);
+		$html = preg_replace('/<[^>]*>/', ' ', $html);
+		$text = $this->_search_normalize(html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+		foreach ($terms['include'] as $regex) {
+			if (!preg_match($regex, $text)) {
+				return FALSE;
+			}
+		}
+
+		foreach ($terms['exclude'] as $regex) {
+			if (preg_match($regex, $text)) {
+				return FALSE;
+			}
 		}
 
 		return TRUE;

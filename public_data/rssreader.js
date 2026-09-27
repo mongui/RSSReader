@@ -1,4 +1,4 @@
-var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, selFeedId, selPostId, hoverFeed, unreaded, killScroll, lastSelFeed, reloadPostList;
+var loader, error, success, header, feedPanel, feedList, postList, separator, feeds, posts, selFeed, selPost, selFeedId, selPostId, hoverFeed, unreaded, killScroll, lastSelFeed, reloadPostList, searchQuery = '';
 
 $(document).ready(function(ev) {
 	loader		= $("#loader");
@@ -283,6 +283,10 @@ $(document).ready(function(ev) {
 			cnt = cnt.replace(/<a /g, '<span class="content-link"><a target="_blank" ').replace(/<\/a>/g, '</a></span>');
 			
 			content.html( content.html().replace("{content}", cnt) );
+
+			if ( lastSelFeed === 'search' ) {
+				highlightSearch(content.children('.resize')[0]);
+			}
 		}
 
 		content.slideToggle( 400, function() {
@@ -425,7 +429,13 @@ $(document).ready(function(ev) {
 	postList.scroll( function() {
 		var divTotalSize = $(this)[0].scrollHeight - $(this).height();
 		if ( $(this).scrollTop() >= divTotalSize && killScroll == false ) {
-			loadPostlist(lastSelFeed, $(".entry").size(), function() {
+			// The searches go on from the cursor sent by the server.
+			var from = ( lastSelFeed === 'search' ) ? posts.next : $(".entry").size();
+			if ( lastSelFeed === 'search' && !from ) {
+				return;
+			}
+
+			loadPostlist(lastSelFeed, from, function() {
 				killScroll = false;
 			});
 		}
@@ -494,13 +504,19 @@ $(document).ready(function(ev) {
 	});
 
 	$('#submit-search').click( function() {
+		var query = $.trim($('#search-input').val());
+		if ( query === '' ) {
+			return false;
+		}
+		searchQuery = query;
+
 		loader.fadeIn();
 
 		if ( selFeed ) {
 			selFeed.removeClass('selected-feed');
 		}
 
-		loadPostlist($('#search-input').val(), 0, function() {
+		loadPostlist('search', 0, function() {
 			if ( typeof isPhone != 'undefined' ) { // For phones.
 				setVSeparator();
 			}
@@ -934,6 +950,9 @@ function loadPostlist(feed, from, callback) {
 		return;
 	}
 
+	// "from" is the number of posts already shown or, in the searches, the cursor of the next page.
+	var more = ( typeof(from) === 'string' ) ? from !== '' : from > 0;
+
 	killScroll = true;
 
 	loader.fadeIn();
@@ -942,7 +961,11 @@ function loadPostlist(feed, from, callback) {
 		feed : feed
 	};
 
-	if ( from > 0 ) {
+	if ( feed === 'search' ) {
+		sendData.search = searchQuery;
+	}
+
+	if ( more ) {
 		sendData.next = from;
 	}
 	else {
@@ -956,18 +979,19 @@ function loadPostlist(feed, from, callback) {
 		url     : "posts/get",
 		data    : sendData
 	}).done(function(plist) {
-		if ( from > 0 && typeof plist.posts !== 'undefined' ) {
-			$.extend(posts.posts, plist.posts);
+		if ( more && typeof plist.posts !== 'undefined' ) {
+			posts.posts = $.extend(posts.posts || {}, plist.posts);
 		}
-		else if ( from == 0 ) {
+		else if ( !more ) {
 			$.extend(posts, plist);
 		}
+		posts.next = ( typeof plist.next !== 'undefined' ) ? plist.next : null;
 
 		var feedTmpl = $("#feeddata-tmpl").html();
 		var postBase = $("#posts-tmpl").html();
 		var postsTmpl, readed, starred;
 
-		if ( from == 0 ) {
+		if ( !more ) {
 			postList.html('');
 
 			feedTmpl = feedTmpl
@@ -1001,9 +1025,13 @@ function loadPostlist(feed, from, callback) {
 					.replace("{url}", item.url)
 					.replace("{title}", item.title)
 
-					.replace("{author}", ( item.author != '' ) ? item.author : 'Anonymous');
+					.replace("{author}", ( item.author != '' ) ? item.author : t('Anonymous'));
 
 				postList.children('.entries').append(postsTmpl);
+
+				if ( feed === 'search' ) {
+					highlightSearch(postList.children('.entries').children('.entry').last().children('.title')[0]);
+				}
 
 				if ( selPostId == item.id_post ) {
 					NXTselPostId = item.id_post;
@@ -1011,10 +1039,14 @@ function loadPostlist(feed, from, callback) {
 			});
 		}
 
-		if ( from > 0 && typeof callback === 'function' ) {
+		if ( postList.find('.entry').length === 0 && !posts.next ) {
+			postList.children('.entries').append('<li class="no-posts">' + t('No posts found.') + '</li>');
+		}
+
+		if ( more && typeof callback === 'function' ) {
 			callback();
 		}
-		else {
+		else if ( !more ) {
 			postList.animate({scrollTop: 0},'500', function() {
 				if (typeof callback === 'function') {
 					callback();
@@ -1037,12 +1069,168 @@ function loadPostlist(feed, from, callback) {
 		killScroll = false;
 
 		loader.fadeOut();
+
+		// A search page can come with few results (or none) and more to come:
+		// if the list doesn't fill the panel, there is no scroll to ask for them.
+		if ( feed === 'search' && posts.next && postList[0].scrollHeight <= postList.innerHeight() ) {
+			loadPostlist('search', posts.next);
+		}
 	}).fail(function() {
 		error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		killScroll = false;
 	});
 }
+
+/* SEARCH HIGHLIGHT */
+// Same rules as Connections::search_posts() (models/connections.php).
+var searchWordChars = '0-9A-Za-zªµºÀ-ÖØ-öø-ɏ';
+
+function searchNormalize(text) {
+	var from = 'áàäâãåéèëêíìïîóòöôõúùüûçýÿ';
+	var to   = 'aaaaaaeeeeiiiiooooouuuucyy';
+
+	return text.toLowerCase().replace(/[áàäâãåéèëêíìïîóòöôõúùüûçýÿ]/g, function(c) {
+		return to.charAt(from.indexOf(c));
+	});
+}
+
+// Returns the terms to highlight (not the excluded ones) as regular expressions.
+function searchPatterns(query) {
+	var patterns = [];
+	var token, tokens = /(-?)"([^"]*)"|(\S+)/g;
+	var accents = { a: '[aáàäâãå]', e: '[eéèëê]', i: '[iíìïî]', o: '[oóòöôõ]', u: '[uúùüû]', c: '[cç]', y: '[yýÿ]' };
+
+	while ( (token = tokens.exec(query)) !== null ) {
+		var text, quoted;
+
+		if ( typeof token[3] !== 'undefined' ) {
+			text = token[3];
+			if ( text.length > 1 && text.charAt(0) === '-' ) {
+				continue;
+			}
+			quoted = false;
+		}
+		else {
+			if ( token[1] === '-' ) {
+				continue;
+			}
+			text = token[2];
+			quoted = true;
+		}
+
+		var words = $.grep(searchNormalize(text).split(new RegExp('[^' + searchWordChars + ']+')), function(word) {
+			return word !== '';
+		});
+		if ( words.length === 0 ) {
+			continue;
+		}
+
+		var parts = $.map(words, function(word) {
+			return $.map(word.split(''), function(c) {
+				return accents[c] ? accents[c] : c.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&');
+			}).join('');
+		});
+
+		patterns.push({
+			regex	: new RegExp(parts.join('[^' + searchWordChars + ']+'), 'gi'),
+			prefix	: !quoted && words.length === 1 && words[0].length >= 4
+		});
+	}
+
+	return patterns;
+}
+
+// Returns the [start, end] positions of the terms in a text, sorted and without overlaps.
+function searchRanges(text, patterns) {
+	var isWordChar = new RegExp('[' + searchWordChars + ']');
+	var ranges = [], merged = [];
+
+	$.each(patterns, function(i, pattern) {
+		var match;
+		pattern.regex.lastIndex = 0;
+
+		while ( (match = pattern.regex.exec(text)) !== null ) {
+			var start = match.index;
+			var end = start + match[0].length;
+
+			// The term must start a word, and end it too if it isn't a prefix.
+			if ( ( start === 0 || !isWordChar.test(text.charAt(start - 1)) ) &&
+				( pattern.prefix || end === text.length || !isWordChar.test(text.charAt(end)) ) ) {
+				// A prefix is highlighted until the end of the word (cena: [cenas]).
+				while ( pattern.prefix && end < text.length && isWordChar.test(text.charAt(end)) ) {
+					end++;
+				}
+				ranges.push([start, end]);
+			}
+			pattern.regex.lastIndex = start + 1;
+		}
+	});
+
+	ranges.sort(function(a, b) { return a[0] - b[0]; });
+
+	$.each(ranges, function(i, range) {
+		var last = merged[merged.length - 1];
+
+		if ( last && range[0] <= last[1] ) {
+			last[1] = Math.max(last[1], range[1]);
+		}
+		else {
+			merged.push([range[0], range[1]]);
+		}
+	});
+
+	return merged;
+}
+
+// Wraps the searched terms in <em class="highlight">, only in the text (never in tags or URLs).
+function highlightSearch(root) {
+	var patterns = searchPatterns(searchQuery);
+	if ( !root || patterns.length === 0 ) {
+		return;
+	}
+
+	var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+	var nodes = [], node;
+
+	while ( (node = walker.nextNode()) ) {
+		if ( $(node.parentNode).closest('script, style, textarea, em.highlight, .timestamp').length === 0 ) {
+			nodes.push(node);
+		}
+	}
+
+	$.each(nodes, function(i, node) {
+		var text = node.nodeValue;
+		var ranges = searchRanges(text, patterns);
+
+		if ( ranges.length === 0 ) {
+			return;
+		}
+
+		var fragment = document.createDocumentFragment();
+		var position = 0;
+
+		$.each(ranges, function(j, range) {
+			if ( range[0] > position ) {
+				fragment.appendChild(document.createTextNode(text.substring(position, range[0])));
+			}
+
+			var em = document.createElement('em');
+			em.className = 'highlight';
+			em.appendChild(document.createTextNode(text.substring(range[0], range[1])));
+			fragment.appendChild(em);
+
+			position = range[1];
+		});
+
+		if ( position < text.length ) {
+			fragment.appendChild(document.createTextNode(text.substring(position)));
+		}
+
+		node.parentNode.replaceChild(fragment, node);
+	});
+}
+/* END SEARCH HIGHLIGHT */
 
 function addFeedToList(feedData) {
 	feedsTmpl = $("#feeds-tmpl").html();

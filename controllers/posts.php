@@ -39,25 +39,15 @@ class Posts extends ControllerBase
 	 */
 	public function get()
 	{
-		$feed_id = filter_var($_POST['feed'], FILTER_SANITIZE_STRING);
-		$feed_next = (isset($_POST['next'])) ? filter_var($_POST['next'], FILTER_SANITIZE_NUMBER_INT) : 0;
+		$this->load->helper('lang');
 
-		// Do you want a feed or is it something else?
-		if (
-			   !is_numeric($feed_id)
-			&& $feed_id <> 'unreaded'
-			&& $feed_id <> 'starred'
-			&& $feed_id <> 'lastreaded'
-		) {
-			$search_string = $feed_id;
-			$feed_id = 'search';
+		// A feed id or a list: unreaded, starred, lastreaded or search.
+		$feed_id = isset($_POST['feed']) ? (string) $_POST['feed'] : '';
+		$feed_next = isset($_POST['next']) ? (string) $_POST['next'] : '';
 
-			$chunks = explode(' ', $search_string);
-			foreach ($chunks as $chunk) {
-				$chunks2[] = "<em class=\"highlight\">" . $chunk . "</em>";
-			}
-		} else {
-			$search_string = NULL;
+		if (!ctype_digit($feed_id) && !in_array($feed_id, array('unreaded', 'starred', 'lastreaded', 'search'), TRUE)) {
+			echo 'Feed not found!';
+			return FALSE;
 		}
 
 		if (is_numeric($feed_id)) {
@@ -71,25 +61,31 @@ class Posts extends ControllerBase
 			$data->last_update	= '';
 			$data->favicon		= NULL;
 
-			if ($feed_id == 'unreaded' || $feed_id == 'starred') {
-				$data->name		= ucfirst($feed_id) . ' posts';
+			if ($feed_id == 'unreaded') {
+				$data->name		= t('Unread posts');
+			} elseif ($feed_id == 'starred') {
+				$data->name		= t('Starred posts');
 			} elseif ($feed_id == 'lastreaded') {
-				$data->name		= 'Last readed posts';
+				$data->name		= t('Recently read posts');
 			} elseif ($feed_id == 'search') {
-				$data->name		= 'Search for &quot;<i>' . $search_string . '</i>&quot;';
+				$search			= isset($_POST['search']) ? (string) $_POST['search'] : '';
+				$data->name		= sprintf(t('Search for "%s"'), '<i>' . htmlspecialchars($search, ENT_QUOTES, 'UTF-8') . '</i>');
 			}
 		}
 
 		// We can find the posts.
 		if (!empty($data)) {
-			$posts = $this->connections->posts_from_feed($feed_id, $feed_next, $_SESSION['id'], $search_string);
+			if ($feed_id == 'search') {
+				// The search pages go on from a cursor instead of a number of posts.
+				$found = $this->connections->search_posts($_SESSION['id'], $search, ($feed_next !== '' && $feed_next !== '0') ? $feed_next : NULL);
+				$posts = $found['posts'];
+				$data->next = $found['next'];
+			} else {
+				$posts = $this->connections->posts_from_feed($feed_id, (int) $feed_next, $_SESSION['id']);
+			}
 
 			if ($posts) {
 				foreach ($posts as $post) {
-					if (isset($search_string)) {
-						$post->content = str_replace($chunks, $chunks2,$post->content);
-					}
-
 					$data->posts['post-' . $post->id_post] = $post;
 				}
 			} else {
@@ -105,7 +101,7 @@ class Posts extends ControllerBase
 				if ($ti['today']) {
 					$data->last_update = timestamp_to_user_defined($data->last_update, 'H:i');
 				} elseif ($ti['yesterday']) {
-					$data->last_update = 'Yesterday';
+					$data->last_update = t('Yesterday');
 				} else {
 					$data->last_update = timestamp_to_user_defined($data->last_update, $_SESSION['timeformat']);
 				}
@@ -116,7 +112,7 @@ class Posts extends ControllerBase
 				if ($ti['today']) {
 					$data->posts[$id]->timestamp = timestamp_to_user_defined($val->timestamp, 'H:i');
 				} elseif ($ti['yesterday']) {
-					$data->posts[$id]->timestamp = 'Yesterday';
+					$data->posts[$id]->timestamp = t('Yesterday');
 				} else {
 					$data->posts[$id]->timestamp = timestamp_to_user_defined($val->timestamp, $_SESSION['timeformat']);
 				}

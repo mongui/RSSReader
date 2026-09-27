@@ -39,6 +39,15 @@ return array(
 	'post|Unread'							=> 'No leído',
 	'post|Starred'							=> 'Favorito',
 	'No name'								=> 'Sin nombre',
+	'Anonymous'								=> 'Anónimo',
+	'Yesterday'								=> 'Ayer',
+	'No posts found.'						=> 'No se han encontrado posts.',
+
+	// Lists and search.
+	'Unread posts'							=> 'Posts no leídos',
+	'Starred posts'							=> 'Posts favoritos',
+	'Recently read posts'					=> 'Posts leídos recientemente',
+	'Search for "%s"'						=> 'Búsqueda de "%s"',
 
 	// Feed list menu.
 	'Please enter the new feed name:'		=> 'Introduce el nuevo nombre del feed:',
