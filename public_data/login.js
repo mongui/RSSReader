@@ -1,5 +1,9 @@
 $(document).ready(function ()
 {
+	// Focused here instead of with the autofocus attribute, which makes Firefox
+	// lay out the page before the stylesheet is loaded (unstyled page for a moment).
+	$("#log-username").focus();
+
 	$("form").submit(function(e) {
 		e.preventDefault();
 	});

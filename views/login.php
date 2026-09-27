@@ -25,7 +25,7 @@
 			<div class="input">
 				<label for="log-username">Username</label>
 				<br />
-				<input id="log-username" class="inputbox" type="text" tabindex="1" placeholder="Enter your username" autofocus="autofocus" />
+				<input id="log-username" class="inputbox" type="text" tabindex="1" placeholder="Enter your username" />
 			</div>
 
 			<div class="input">
@@ -60,7 +60,7 @@
 			<div class="input">
 				<label for="rec-email">Email</label>
 				<br />
-				<input id="rec-email" class="inputbox" type="text" tabindex="1" placeholder="Enter your email" autofocus="autofocus" />
+				<input id="rec-email" class="inputbox" type="text" tabindex="1" placeholder="Enter your email" />
 			</div>
 
 			<div class="controls">
@@ -80,7 +80,7 @@
 			<div class="input">
 				<label for="reg-username">Username</label>
 				<br />
-				<input id="reg-username" class="inputbox" type="text" tabindex="1" placeholder="Enter your username" autofocus="autofocus" />
+				<input id="reg-username" class="inputbox" type="text" tabindex="1" placeholder="Enter your username" />
 			</div>
 
 			<div class="input">
