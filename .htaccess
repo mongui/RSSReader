@@ -14,7 +14,9 @@ AddDefaultCharset UTF-8
 	SetEnvIfNoCase Request_URI "/update/" no-gzip dont-vary
 </IfModule>
 
-Header always append X-Frame-Options SAMEORIGIN
+<IfModule mod_headers.c>
+	Header always append X-Frame-Options SAMEORIGIN
+</IfModule>
 
 FileETag MTime Size
 <IfModule mod_expires.c>
