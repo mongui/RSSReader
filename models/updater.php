@@ -42,7 +42,7 @@ class Updater extends ModelBase
 	function feed_in_database($feed_url)
 	{
 		$sql = "
-			SELECT *
+			SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active
 			FROM feeds
 			WHERE url = '$feed_url'
 			LIMIT 1
@@ -99,10 +99,11 @@ class Updater extends ModelBase
 		}
 
 		$sql = "
-			SELECT *
+			SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active
 			FROM feeds
 			WHERE last_update < FROM_UNIXTIME($seconds)
 			AND active = 1
+			ORDER BY last_update ASC
 			$limit
 		";
 
@@ -168,41 +169,53 @@ class Updater extends ModelBase
 	 */
 	function get_feed_by_url($url, $fast = FALSE)
 	{
-		$this->load->library('simplepie');
+		error_reporting(E_ALL);
 
-		$this->simplepie->set_feed_url($url);
+		// Only loads the class. A new instance is used on every call so no
+		// state (or memory) is shared between feeds.
+		$this->load->library('simplepie');
+		$feed = new SimplePie();
+
+		$feed->set_feed_url($url);
+		$feed->set_timeout(15);
+		$feed->force_feed(true);
 
 		if ($fast) {
-			$this->simplepie->set_stupidly_fast(TRUE);
+			$feed->set_stupidly_fast(TRUE);
 		}
 
-		error_reporting(E_ERROR);
-
 		// This allows Youtube videos.
-		$strip_htmltags = $this->simplepie->strip_htmltags;
+		$strip_htmltags = $feed->strip_htmltags;
 		unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
-		$this->simplepie->strip_htmltags($strip_htmltags);
+		$feed->strip_htmltags($strip_htmltags);
 
-		$this->simplepie->set_output_encoding('UTF-8');
-		$this->simplepie->init();
-		$this->simplepie->handle_content_type();
+		$feed->set_output_encoding('UTF-8');
+		$feed->init();
+		$feed->handle_content_type();
 
 		// If RSS is malformed.
-		if ($this->simplepie->error()) {
-			unset ($this->simplepie);
-			$this->simplepie = new SimplePie();
+		if ($feed->error()) {
+			$feed->__destruct();
+			$feed = new SimplePie();
+			$feed->force_feed(true);
 
 			$c = curl_init($url);
 			curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
 			curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
+			curl_setopt($c, CURLOPT_CONNECTTIMEOUT, 10);
+			curl_setopt($c, CURLOPT_TIMEOUT, 20);
 			curl_setopt($c, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
 
 			$content = curl_exec($c);
 
-			if (!isset($http_response_header)) {
-				$http_response_header = get_headers($url);
+			if ($content === FALSE) {
+				$feed->error = 'cURL error: ' . curl_error($c);
+				curl_close($c);
+				echo $feed->error . ' ';
+				return $feed;
 			}
+			curl_close($c);
 
 			// Adjust the downloaded posts characters.
 			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
@@ -213,17 +226,22 @@ class Updater extends ModelBase
 			$content = preg_replace('/(<script.+?>)(<\/script>)/i', '', $content);
 			$content = preg_replace('/<script.+?\/>/i', '', $content);
 
-			$this->simplepie->set_raw_data($content);
+			$feed->set_raw_data($content);
 
 			// This allows Youtube videos.
-			$strip_htmltags = $this->simplepie->strip_htmltags;
+			$strip_htmltags = $feed->strip_htmltags;
 			unset($strip_htmltags[array_search('iframe', $strip_htmltags)]);
-			$this->simplepie->set_output_encoding('UTF-8');
-			$this->simplepie->init();
-			$this->simplepie->handle_content_type();
+			$feed->strip_htmltags($strip_htmltags);
+			$feed->set_output_encoding('UTF-8');
+			$feed->init();
+			$feed->handle_content_type();
 		}
 
-		return $this->simplepie;
+		if ($feed->error()) {
+			echo $feed->error() . ' ';
+		}
+
+		return $feed;
 	}
 
 	/**
@@ -238,7 +256,7 @@ class Updater extends ModelBase
 	function feed_data_from_id($feed_id)
 	{
 		$sql = "
-				SELECT *
+				SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active
 				FROM feeds
 				WHERE id_feed = $feed_id
 				LIMIT 1
@@ -302,9 +320,15 @@ class Updater extends ModelBase
 		$feed = $this->feed_data_from_id($feed_id);
 
 		$feed_data = $this->get_feed_by_url($feed->url);
-
 		if (!isset($feed_data) || $feed_data == FALSE) {
 			$this->active_feed($feed_id, 0);
+			return FALSE;
+		}
+
+		// Check if the parsed feed has a list of items.
+		if (sizeof($feed_data->get_items()) == 0) {
+			$feed_data->__destruct();
+			unset($feed_data);
 			return FALSE;
 		}
 
@@ -347,33 +371,46 @@ class Updater extends ModelBase
 				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode(', ', $authors) : '',
 				'url'				=> str_replace('\'', '', $item->get_link()),
 				'title'				=> $item->get_title(),
-				'content'			=> ((count($item->get_content()) > 0 ) ? $item->get_content() : '<i>No content.</i>') . ((isset($media_content)) ? $media_content : '')
+				'content'			=> (($item->get_content() != '') ? $item->get_content() : '<i>No content.</i>') . ((isset($media_content)) ? $media_content : '')
 			);
 			unset($authors);
 
 
 			if ($item->get_link()) {
-				$or_where[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
+				$or_where_url[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
 			}
+
+			$or_where_timestamp[] = "timestamp = '" . date('Y-m-d H:i:s', strtotime($item->get_date())) . "'";
 		}
 
-		if (!empty($or_where)) {
-			$or_where = 'WHERE ' . implode(" OR \n", $or_where);
+		// SimplePie has circular references, so it must be freed manually.
+		$feed_data->__destruct();
+		unset($feed_data, $item);
+
+		if (!empty($or_where_url)) {
+			// Filter posts by url.
+			$or_where = implode(" OR \n", $or_where_url);
+			$sql = "
+				SELECT timestamp
+				FROM posts
+				WHERE id_feed = $feed_id
+				AND ($or_where)
+			";
 		} else {
-			$or_where = '';
+			// Filter posts by timestamp.
+			$or_where = implode(" OR \n", $or_where_timestamp);
+			$sql = "
+				SELECT timestamp
+				FROM posts
+				WHERE id_feed = $feed_id
+				AND ($or_where)
+			";
 		}
-
-		// Filter posts by url.
-		$sql = "
-			SELECT url
-			FROM posts
-			$or_where
-		";
 
 		$rtrn = $this->conn->prepare($sql);
 		$rtrn->execute();
 		foreach ($rtrn->fetchAll(PDO::FETCH_OBJ) as $result) {
-			$rslt[] = $result->url;
+			$rslt[] = $result->timestamp;
 		}
 
 		if (!isset($rslt)) {
@@ -381,28 +418,15 @@ class Updater extends ModelBase
 		}
 
 		if (!empty($data)) {
-
 			if (!empty($rslt)) {
 				foreach ($data as $key => $item) {
-					if (isset($rslt) && in_array($item['url'], $rslt)) {
+					if (isset($rslt) && in_array($item['timestamp'], $rslt)) {
 						unset($data[$key]);
 					}
 				}
 			}
 
-			// Filter posts by timestamp.
-			$sql = "
-				SELECT timestamp
-				FROM posts
-				WHERE id_feed = " . $feed_id . "
-				ORDER BY timestamp DESC
-				LIMIT 1
-			";
-
-			$rtrn = $this->conn->prepare($sql);
-			$rtrn->execute();
-
-			if (!empty($rslt)) {
+			if (!empty($rslt) && $rtrn->fetchObject() != null && isset($rtrn->fetchObject()->timestamp)) {
 				$newest = strtotime($rtrn->fetchObject()->timestamp);
 			}
 

@@ -9,6 +9,11 @@ RewriteRule ^public_data/(.*).(css|js)$ public_data/mnfr.php?files=$1&type=$2 [Q
 
 AddDefaultCharset UTF-8
 
+# Don't compress the update output, so its progress is sent live.
+<IfModule mod_setenvif.c>
+	SetEnvIfNoCase Request_URI "/update/" no-gzip dont-vary
+</IfModule>
+
 Header always append X-Frame-Options SAMEORIGIN
 
 FileETag MTime Size

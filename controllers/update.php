@@ -24,49 +24,167 @@ class Update extends ControllerBase
 
 	/**
 	 * Feed
-	 * 
+	 *
 	 * Updates a specific feed.
 	 */
 	public function feed($feed_id = FALSE)
 	{
 		error_reporting(E_ERROR);
 		if ($feed_id) {
-			return $this->updater->update_feed($feed_id);
+			$this->_report_fatal_errors();
+			$updated = $this->_update_one($feed_id);
+			echo $updated ? 'OK' : 'ERROR';
+			return $updated;
 		}
 	}
 
 	/**
 	 * All
-	 * 
+	 *
 	 * Updates all feeds ordered in groups.
 	 * For this to work, a cronjob is needed to run every 5 minutes.
-	 * 
+	 *
 	 * Cronjob example:
-	 * * /5 * * * * php /home/user/public_html/index.php update all 
+	 * * /5 * * * * php /home/user/public_html/index.php update all
 	 */
 	public function all()
 	{
-		echo 'Updating... ';
+		if (PHP_SAPI !== 'cli') {
+			$this->_prepare_streaming();
+		}
 
-		// Set time and memory limits higher (if possible).
+		echo '<pre>';
+		echo 'Starting update.' . PHP_EOL;
+		$this->_flush();
+
+		// Set memory limit higher (if possible).
+		// The time limit is set for every feed in _update_one().
 		error_reporting(E_ERROR);
-		set_time_limit(300);
 		ini_set('memory_limit', '256M');
+		$this->_report_fatal_errors();
 
 		$seconds_ago = $this->config->get('minutes_between_updates') * 60;
 		$max_feeds = $this->config->get('max_feeds_per_update');
 
 		$feeds = $this->updater->feeds_not_updated($seconds_ago, $max_feeds);
 
-		foreach ($feeds as $feed) {
-			echo $feed->id_feed . ', ';
-			$updated = $this->updater->update_feed($feed->id_feed);
+		if (sizeof($feeds) > 0) {
+			foreach ($feeds as $feed) {
+				echo $feed->id_feed . ' - ' . $feed->name . '... ';
+				$this->_flush();
 
-			// If the feed has been successfully updated, activate it.
-			if ($updated) {
-				$this->updater->change_feed_last_update($feed->id_feed);
-				$this->updater->active_feed($feed->id_feed, 1);
+				$updated = $this->_update_one($feed->id_feed);
+
+				echo ($updated ? 'OK' : 'ERROR') . PHP_EOL;
+				$this->_flush();
 			}
+		} else {
+			echo 'Nothing to update.' . PHP_EOL;
 		}
+		echo 'Update finished.' . PHP_EOL;
+		echo '</pre>';
+	}
+
+	/**
+	 * Prepare Streaming
+	 *
+	 * Disables every buffer and compression between PHP and the browser,
+	 * so the progress is shown live and the gateway doesn't time out (504).
+	 *
+	 * @access	private
+	 * @return	void
+	 */
+	private function _prepare_streaming()
+	{
+		// If the gateway closes the connection anyway, the update goes on.
+		ignore_user_abort(TRUE);
+
+		header('Content-Type: text/html; charset=UTF-8');
+		header('Cache-Control: no-cache');
+		// Nginx: don't buffer this response.
+		header('X-Accel-Buffering: no');
+
+		ini_set('zlib.output_compression', '0');
+		if (function_exists('apache_setenv')) {
+			apache_setenv('no-gzip', '1');
+		}
+
+		while (ob_get_level() > 0) {
+			ob_end_flush();
+		}
+		ob_implicit_flush(TRUE);
+
+		// Browsers don't render anything until they receive some data.
+		echo str_repeat(' ', 1024) . PHP_EOL;
+	}
+
+	/**
+	 * Flush
+	 *
+	 * Sends the output generated so far to the client.
+	 *
+	 * @access	private
+	 * @return	void
+	 */
+	private function _flush()
+	{
+		if (ob_get_level() > 0) {
+			ob_flush();
+		}
+		flush();
+	}
+
+	/**
+	 * Update One
+	 *
+	 * Updates a single feed isolating its failures, so a slow or
+	 * broken feed can't stop the rest of the update.
+	 *
+	 * @access	private
+	 * @param	integer
+	 * @return	bool
+	 */
+	private function _update_one($feed_id)
+	{
+		// Resets the time counter for every feed.
+		set_time_limit(60);
+
+		// Refreshed before downloading the feed, so if it hangs or kills
+		// the script, the next update skips it instead of getting stuck on it.
+		$this->updater->change_feed_last_update($feed_id);
+
+		try {
+			$updated = $this->updater->update_feed($feed_id);
+		} catch (Throwable $e) {
+			echo $e->getMessage() . ' ';
+			$updated = FALSE;
+		}
+
+		// If the feed has been successfully updated, activate it.
+		if ($updated) {
+			$this->updater->active_feed($feed_id, 1);
+		}
+
+		gc_collect_cycles();
+
+		return (bool) $updated;
+	}
+
+	/**
+	 * Report Fatal Errors
+	 *
+	 * Prints the fatal error (timeout, memory...) that killed the script, if any.
+	 *
+	 * @access	private
+	 * @return	void
+	 */
+	private function _report_fatal_errors()
+	{
+		register_shutdown_function(function () {
+			$error = error_get_last();
+			if ($error && in_array($error['type'], array(E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR))) {
+				echo PHP_EOL . 'FATAL: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line'] . PHP_EOL;
+			}
+		});
 	}
 }
