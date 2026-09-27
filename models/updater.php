@@ -347,16 +347,10 @@ class Updater extends ModelBase
 			}
 
 			// Multimedia files attached.
+			$media_content = '';
 			if ($enclosure = $item->get_enclosure()) {
 				if ($enclosure->description != '' || $enclosure->length != null) {
 					$enclosure->description = nl2br($enclosure->description);
-
-					if ($enclosure->length != null) {
-						$multimedia_size = round($enclosure->length/1024/1024, 2);
-					} else {
-						$multimedia_size = 0;
-					}
-
 
 					$media_content = '<div style="border:1px solid #aaa;padding:1em;margin:1em auto;background:#eee;">
 						<strong>Multimedia:</strong> ' . $enclosure->description . '<br />
@@ -365,75 +359,65 @@ class Updater extends ModelBase
 				}
 			}
 
+			$url = str_replace('\'', '', $item->get_link());
+
 			$data[] = array(
 				'id_feed'			=> $feed_id,
 				'timestamp'			=> date('Y-m-d H:i:s', strtotime($item->get_date())),
 				'author'			=> ( isset($authors) && count($authors) > 0 ) ? implode(', ', $authors) : '',
-				'url'				=> str_replace('\'', '', $item->get_link()),
+				// NULL instead of '', so posts without link don't collide in the unique url key.
+				'url'				=> ($url != '') ? $url : NULL,
 				'title'				=> $item->get_title(),
-				'content'			=> (($item->get_content() != '') ? $item->get_content() : '<i>No content.</i>') . ((isset($media_content)) ? $media_content : '')
+				'content'			=> (($item->get_content() != '') ? $item->get_content() : '<i>No content.</i>') . $media_content
 			);
 			unset($authors);
-
-
-			if ($item->get_link()) {
-				$or_where_url[] = "url = '" . str_replace('\'', '', $item->get_link()) . "'";
-			}
-
-			$or_where_timestamp[] = "timestamp = '" . date('Y-m-d H:i:s', strtotime($item->get_date())) . "'";
 		}
 
 		// SimplePie has circular references, so it must be freed manually.
 		$feed_data->__destruct();
 		unset($feed_data, $item);
 
-		if (!empty($or_where_url)) {
-			// Filter posts by url.
-			$or_where = implode(" OR \n", $or_where_url);
-			$sql = "
-				SELECT timestamp
-				FROM posts
-				WHERE id_feed = $feed_id
-				AND ($or_where)
-			";
-		} else {
-			// Filter posts by timestamp.
-			$or_where = implode(" OR \n", $or_where_timestamp);
-			$sql = "
-				SELECT timestamp
-				FROM posts
-				WHERE id_feed = $feed_id
-				AND ($or_where)
-			";
+		// Posts already in the database: by url (unique in the whole table)
+		// or, for posts without url, by timestamp within this feed.
+		$urls = array();
+		$timestamps = array();
+		foreach ($data as $item) {
+			if ($item['url'] !== NULL) {
+				$urls[] = $item['url'];
+			} else {
+				$timestamps[] = $item['timestamp'];
+			}
 		}
 
-		$rtrn = $this->conn->prepare($sql);
-		$rtrn->execute();
-		foreach ($rtrn->fetchAll(PDO::FETCH_OBJ) as $result) {
-			$rslt[] = $result->timestamp;
+		$existing_urls = array();
+		if (!empty($urls)) {
+			$sql = 'SELECT url FROM posts WHERE url IN (' . implode(', ', array_fill(0, count($urls), '?')) . ')';
+			$rtrn = $this->conn->prepare($sql);
+			$rtrn->execute($urls);
+			// MySQL compares urls case insensitively.
+			$existing_urls = array_map('strtolower', $rtrn->fetchAll(PDO::FETCH_COLUMN));
 		}
 
-		if (!isset($rslt)) {
-			$rslt = array();
+		$existing_timestamps = array();
+		if (!empty($timestamps)) {
+			$sql = 'SELECT timestamp FROM posts WHERE id_feed = ? AND timestamp IN (' . implode(', ', array_fill(0, count($timestamps), '?')) . ')';
+			$rtrn = $this->conn->prepare($sql);
+			$rtrn->execute(array_merge(array($feed_id), $timestamps));
+			$existing_timestamps = $rtrn->fetchAll(PDO::FETCH_COLUMN);
 		}
 
-		if (!empty($data)) {
-			if (!empty($rslt)) {
-				foreach ($data as $key => $item) {
-					if (isset($rslt) && in_array($item['timestamp'], $rslt)) {
-						unset($data[$key]);
-					}
-				}
+		// Removes the posts already stored and the ones repeated in the feed itself.
+		foreach ($data as $key => $item) {
+			if ($item['url'] !== NULL) {
+				$exists = in_array(strtolower($item['url']), $existing_urls);
+				$existing_urls[] = strtolower($item['url']);
+			} else {
+				$exists = in_array($item['timestamp'], $existing_timestamps);
+				$existing_timestamps[] = $item['timestamp'];
 			}
 
-			if (!empty($rslt) && $rtrn->fetchObject() != null && isset($rtrn->fetchObject()->timestamp)) {
-				$newest = strtotime($rtrn->fetchObject()->timestamp);
-			}
-
-			foreach ($data as $key => $item) {
-				if (isset($newest) && strtotime($item['timestamp']) <= $newest) {
-					unset($data[$key]);
-				}
+			if ($exists) {
+				unset($data[$key]);
 			}
 		}
 
@@ -441,8 +425,9 @@ class Updater extends ModelBase
 			try {
 				$this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+				// IGNORE: a duplicated post is skipped instead of discarding the whole batch.
 				$sql = '
-					INSERT INTO posts
+					INSERT IGNORE INTO posts
 					(id_feed, timestamp, author, url, title, content)
 					VALUES
 				';
@@ -453,17 +438,18 @@ class Updater extends ModelBase
 				$i = 1;
 
 				foreach($data as $item) {
-					$dbdata->bindParam($i++, $item['id_feed']	);
-					$dbdata->bindParam($i++, $item['timestamp']	);
-					$dbdata->bindParam($i++, $item['author']	);
-					$dbdata->bindParam($i++, $item['url']		);
-					$dbdata->bindParam($i++, $item['title']		);
-					$dbdata->bindParam($i++, $item['content']	);
+					$dbdata->bindValue($i++, $item['id_feed']	);
+					$dbdata->bindValue($i++, $item['timestamp']	);
+					$dbdata->bindValue($i++, $item['author']	);
+					$dbdata->bindValue($i++, $item['url']		);
+					$dbdata->bindValue($i++, $item['title']		);
+					$dbdata->bindValue($i++, $item['content']	);
 				}
 
 				return $dbdata->execute();
 			} catch (PDOException $err) {
-				echo '\n\n\nError: ' . $err . '\n\n\n';
+				echo $err->getMessage() . ' ';
+				return FALSE;
 			}
 		}
 
