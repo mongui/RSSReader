@@ -27,6 +27,8 @@ class Feeds extends ControllerBase
 			exit;
 		}
 
+		// Loads the configuration stored in the database (admin, show_favicons...).
+		$this->load->model('configuration');
 		$this->load->model('connections');
 	}
 
@@ -37,8 +39,6 @@ class Feeds extends ControllerBase
 	 */
 	public function get($feed_id = null)
 	{
-		$this->load->model('configuration');
-
 		if ($feed_id != null) {
 			$feed = $this->connections->get_feed(filter_var($feed_id));
 			echo json_encode($feed);
