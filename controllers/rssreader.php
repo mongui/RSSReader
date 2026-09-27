@@ -78,7 +78,8 @@ class Rssreader extends ControllerBase
 				$rtrn = $this->manage_users->update_user($userdata);
 			}
 
-			if ($_POST['timezone']) {
+			// Only the admin can change the server configuration.
+			if ($_POST['timezone'] && $this->config->get('admin') == $_SESSION['id']) {
 				$serverdata = array (
 								'timezone'					=> filter_var($_POST['timezone'], FILTER_SANITIZE_STRING),
 								'minutes_between_updates'	=> filter_var($_POST['mins_updates'], FILTER_VALIDATE_INT),
