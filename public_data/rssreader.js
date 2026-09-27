@@ -265,7 +265,10 @@ $(document).ready(function(ev) {
 		});
 
 		if ( content.css('display') != 'block' ) {
-			content.html( content.html().replace("{content}", posts.posts['post-' + selPostId].content) );
+			var cnt = posts.posts['post-' + selPostId].content;
+			cnt = cnt.replace(/<a /g, '<span class="content-link"><a target="_blank" ').replace(/<\/a>/g, '</a></span>');
+			
+			content.html( content.html().replace("{content}", cnt) );
 		}
 
 		content.slideToggle( 400, function() {

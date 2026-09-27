@@ -419,6 +419,11 @@ pre { white-space: pre-wrap; }
 	word-wrap: break-word;
 }
 
+.entries .content .resize * {
+	max-width: 100%;
+	height: auto;
+}
+
 .content .entry-title {
 	font-size: 150%;
 	text-decoration: none;
@@ -436,6 +441,15 @@ pre { white-space: pre-wrap; }
 
 .content a img {
 	border: none;
+}
+
+.content .content-link {
+    margin: 0px -5px;
+}
+
+.content .content-link a {
+	padding: 3px 5px;
+	position: relative;
 }
 
 .content em.highlight {
