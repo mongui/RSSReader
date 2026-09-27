@@ -19,6 +19,14 @@ class Updater extends ModelBase
 	private $conn;
 
 	/**
+	 * HTTP code of the last feed downloaded again with cURL (NULL if it wasn't needed).
+	 *
+	 * @var		integer
+	 * @access	private
+	 */
+	private $last_http_code = NULL;
+
+	/**
 	 * Constructor
 	 *
 	 * @access	public
@@ -193,6 +201,7 @@ class Updater extends ModelBase
 	function get_feed_by_url($url, $fast = FALSE)
 	{
 		error_reporting(E_ALL);
+		$this->last_http_code = NULL;
 
 		// Only loads the class. A new instance is used on every call so no
 		// state (or memory) is shared between feeds.
@@ -254,6 +263,8 @@ class Updater extends ModelBase
 					break;
 				}
 			}
+
+			$this->last_http_code = $http_code;
 
 			// The server didn't send the feed (e.g. a 403 page or an anti-bot check).
 			if ($http_code < 200 || $http_code >= 300) {
@@ -367,6 +378,15 @@ class Updater extends ModelBase
 		$feed_data = $this->get_feed_by_url($feed->url);
 		if (!isset($feed_data) || $feed_data == FALSE) {
 			$this->active_feed($feed_id, 0);
+			return FALSE;
+		}
+
+		// The feed doesn't exist any more: it's deactivated, so it isn't updated again.
+		// It can be activated again from the global feed list of the preferences.
+		if ($this->last_http_code == 404) {
+			$feed_data->__destruct();
+			$this->active_feed($feed_id, 0);
+			echo 'Feed deactivated. ';
 			return FALSE;
 		}
 
