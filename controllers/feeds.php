@@ -36,7 +36,7 @@ class Feeds extends ControllerBase
 
 	/**
 	 * Get
-	 * 
+	 *
 	 * Sends a json array with its feeds to the user.
 	 */
 	public function get($feed_id = null)
@@ -52,7 +52,7 @@ class Feeds extends ControllerBase
 
 	/**
 	 * Manage
-	 * 
+	 *
 	 * Modifies the feedlist as ordered by the user.
 	 */
 	public function manage()
@@ -124,7 +124,7 @@ class Feeds extends ControllerBase
 
 	/**
 	 * Import File
-	 * 
+	 *
 	 * Uploads a OPML file and adds its feeds to the users feedlist.
 	 */
 	public function importfile()
@@ -167,7 +167,7 @@ class Feeds extends ControllerBase
 
 	/**
 	 * Add
-	 * 
+	 *
 	 * Add a feed to the users feedlist.
 	 */
 	public function add()

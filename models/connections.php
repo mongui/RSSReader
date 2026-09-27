@@ -12,7 +12,7 @@ class Connections extends ModelBase
 {
 	/**
 	 * Database connection object.
-	 * 
+	 *
 	 * @var		object
 	 * @access	private
 	 */
@@ -20,7 +20,7 @@ class Connections extends ModelBase
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @access	public
 	 */
 	function __construct()
@@ -32,9 +32,9 @@ class Connections extends ModelBase
 
 	/**
 	 * User Has Feed?
-	 * 
+	 *
 	 * Returns TRUE if the user has an specific feed.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @param	integer
@@ -57,9 +57,9 @@ class Connections extends ModelBase
 
 	/**
 	 * Feeds per User
-	 * 
+	 *
 	 * Returns an array with the ordered feeds of an user.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer
 	 * @param	bool
@@ -106,8 +106,7 @@ class Connections extends ModelBase
 					}
 
 					array_push($folders[$feedsraw[$i]->folder_position]['feeds'], $feedsraw[$i]);
-				}
-				else {
+				} else {
 					$feeds[$feedsraw[$i]->position] = $feedsraw[$i];
 				}
 			}
@@ -168,7 +167,7 @@ class Connections extends ModelBase
 
 	/**
 	 * Posts From Feed
-	 * 
+	 *
 	 * Returns an object array the required posts that differs
 	 * depending of the parameters inserted:
 	 * - If feed param is 'unreaded'.
@@ -176,7 +175,7 @@ class Connections extends ModelBase
 	 * - If feed param is 'search' and there is a search string.
 	 * - If there is just a feed ID and user ID.
 	 * - If there is just a feed ID.
-	 * 
+	 *
 	 * @access	public
 	 * @param	integer/string
 	 * @param	integer
@@ -659,8 +658,7 @@ class Connections extends ModelBase
 				} catch (PDOException $err) {
 					return FALSE;
 				}
-			}
-			else {
+			} else {
 				return TRUE;
 			}
 		} catch (PDOException $err) {

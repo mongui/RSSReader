@@ -22,7 +22,7 @@ class Rssreader extends ControllerBase
 			session_set_cookie_params($this->config->get('session_timeout'));
 			session_start();
 		}
-		
+
 		$this->load->model('configuration');
 		$this->load->helper('lang');
 	}
@@ -55,7 +55,7 @@ class Rssreader extends ControllerBase
 
 	/**
 	 * Preferences
-	 * 
+	 *
 	 * If $_POST is set, saves the user config.
 	 * If not, sends the view.
 	 */
