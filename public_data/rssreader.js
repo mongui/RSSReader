@@ -18,41 +18,7 @@ $(document).ready(function(ev) {
 		}
 	});
 
-	/* LOAD FROM HASH */
-	function readHash() {
-		var hash = window.location.hash;
-		var hashChunk = window.location.hash.split('/');
-
-		if ( typeof hashChunk[1] !== 'undefined' && hashChunk[1] !== '#' && hashChunk[1] !== '' ) {
-			var activateFeed = hashChunk[1].split('_f');
-			activateFeed = activateFeed[activateFeed.length -1];
-
-			if ( !isNaN(activateFeed) && activateFeed > 0 && (activateFeed != selFeedId || reloadPostList) ) {
-				selFeedId = activateFeed;
-				reloadPostList = false;
-				loadPostlist(selFeedId, 0, function() {
-					if ( typeof isPhone != 'undefined' ) { // For phones.
-						setVSeparator();
-					}
-				});
-			}
-		}
-
-		if ( typeof hashChunk[2] !== 'undefined' && hashChunk[2] !== '' ) {
-			var activatePost = hashChunk[2].split('_p');
-			activatePost = activatePost[activatePost.length -1];
-
-			if ( !isNaN(activatePost) && activatePost > 0 ) {
-				selPostId = activatePost;
-			}
-		}
-		else {
-			selPostId = undefined;
-		}
-	}
-
 	$(window).on('hashchange', function() { readHash(); });
-	/* END LOAD FROM HASH */
 
 	/* FEED LIST  */
 	updateFeedlist();
@@ -118,82 +84,6 @@ $(document).ready(function(ev) {
 		loader.fadeOut();
 		return false;
 	});
-
-	function updateFeedlist() {
-		loader.fadeIn();
-
-		$.ajax({
-			type	: "GET",
-			dataType: "json",
-			url		: "feeds/get"
-		}).done(function(flist) {
-			feeds = flist;
-			feedList.html('');
-			unreaded = 0;
-
-			readHash();
-
-			$.each(feeds, function(i, item) {
-				if ( typeof item.folder !== 'undefined' ) {
-					feedList.append( addFolderToList(item) );
-				}
-				else {
-					feedList.append( addFeedToList(item) );
-				}
-
-			});
-
-			$(".list-content").sortable({ connectWith: '.list-content' });
-
-			selFeed = feedList.find('a.selected-feed');
-
-			if (reloadPostList) {
-				readHash();
-			}
-
-			$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
-			loader.fadeOut();
-		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
-			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
-		});
-	}
-
-	function addFeedToList ( feedData ) {
-		feedsTmpl = $("#feeds-tmpl").html();
-		name = (feedData.name !== '') ? feedData.name : t('No name');
-		feedsTmpl = feedsTmpl
-			.replace("{id_feed}",  '#/' + textToURL(name) + '_f' + feedData.id_feed)
-			.replace("{name}", name)
-			.replace("{not_readed}", ( feedData.count > 0 ) ? 'not-readed' : '')
-			.replace("{selected}", ( typeof(selFeedId) !== 'undefined' && feedData.id_feed == selFeedId ) ? 'selected-feed' : '')
-			.replace("{count}", ( feedData.count > 0 ) ? '(' + feedData.count + ')' : '');
-
-			if ( typeof(feedData.favicon) != 'undefined' ) {
-				feedsTmpl = feedsTmpl.replace("{favicon}", '<img src="' + feedData.favicon + '" alt="' + feedData.name + '" />');
-			}
-			else {
-				feedsTmpl = feedsTmpl.replace("{favicon}", '<span class="sprite">&nbsp;</span>');
-			}
-			unreaded = unreaded + parseInt(feedData.count);
-
-		return feedsTmpl;
-	}
-
-	function addFolderToList ( folderData ) {
-		var feedsTmpl2 = $("#feeds-tmpl2").html();
-		var tmp = '';
-		$.each(folderData.feeds, function(j, subitem) {
-			tmp = tmp + addFeedToList(subitem);
-		});
-
-		feedsTmpl2 = feedsTmpl2
-			.replace("{folder}", folderData.folder)
-			.replace("{name}", folderData.name)
-			.replace("{feed}", tmp);
-
-		return feedsTmpl2;
-	}
 
 	$(document).on("click", ".folder", function() {
 		var folder = $(this).children(".list-content");
@@ -281,16 +171,7 @@ $(document).ready(function(ev) {
 	});
 
 	$('#update-feed').click( function() {
-		if ( !isNaN(hoverFeed) ) {
-			var send = {
-				feed	: hoverFeed,
-				action	: 'update'
-			};
-			feeds = manageFeed(send);
-			reloadPostList = true;
-			updateFeedlist();
-			readHash();
-		}
+		updateFeed(hoverFeed);
 	});
 
 	$('#change-name').click( function() {
@@ -358,121 +239,6 @@ $(document).ready(function(ev) {
 	/* END FEED LIST */
 
 	/* POST LIST */
-	function loadPostlist(feed, from, callback) {
-		if ( killScroll == true || typeof(feed) === 'undefined' ) {
-			return;
-		}
-
-		killScroll = true;
-
-		loader.fadeIn();
-
-		var sendData = {
-			feed : feed
-		};
-
-		if ( from > 0 ) {
-			sendData.next = from;
-		}
-		else {
-			posts = {};
-		}
-		plist = {};
-
-		$.ajax({
-			type    : "POST",
-			dataType: "json",
-			url     : "posts/get",
-			data    : sendData
-		}).done(function(plist) {
-			if ( from > 0 && typeof plist.posts !== 'undefined' ) {
-				$.extend(posts.posts, plist.posts);
-			}
-			else if ( from == 0 ) {
-				$.extend(posts, plist);
-			}
-
-			var feedTmpl = $("#feeddata-tmpl").html();
-			var postBase = $("#posts-tmpl").html();
-			var postsTmpl, readed, starred;
-
-			if ( from == 0 ) {
-				postList.html('');
-
-				feedTmpl = feedTmpl
-					.replace("{feed_site}", posts.site)
-					.replace("{feed_name}", posts.name)
-					.replace("{last_update}", posts.last_update);
-				postList.append(feedTmpl);
-			}
-
-			if ( posts.last_update === '' ) {
-				postList.children('.feed-title').children('.feed-last-update').hide();
-			}
-
-			var NXTselPostId = undefined;
-			if ( typeof plist.posts !== 'undefined' ) {
-				var hashChunk = window.location.hash.split('/');
-
-				$.each(plist.posts, function(i, item) {
-					postsTmpl = postBase;
-					readed = (item.readed > 0) ? 'readed' : '';
-					starred = (item.starred > 0) ? 'starred' : '';
-
-					postsTmpl = postsTmpl
-						.replace("{readed}", readed)
-						.replace("{starred}", starred)
-						.replace("{starred}", starred)
-
-						.replace("{id_post}", (typeof hashChunk[1] !== 'undefined') ? (hashChunk[1] + '/' + textToURL(item.title) + '_p' + item.id_post) : item.id_post)
-						.replace("{title}", item.title)
-						.replace("{timestamp}", item.timestamp)
-						.replace("{url}", item.url)
-						.replace("{title}", item.title)
-
-						.replace("{author}", ( item.author != '' ) ? item.author : 'Anonymous');
-
-					postList.children('.entries').append(postsTmpl);
-
-					if ( selPostId == item.id_post ) {
-						NXTselPostId = item.id_post;
-					}
-				});
-			}
-
-			if ( from > 0 && typeof callback === 'function' ) {
-				callback();
-			}
-			else {
-				postList.animate({scrollTop: 0},'500', function() {
-					if (typeof callback === 'function') {
-						callback();
-					}
-				});
-			}
-			lastSelFeed = feed;
-
-			if ( !isNaN(NXTselPostId) && !isNaN(selPostId) && selPostId > 0 ) {
-				$("li.entry").each(function() {
-					var activatePost = $(this).children('a').attr('href').split('_p');
-					activatePost = activatePost[activatePost.length -1];
-
-					if ( activatePost == NXTselPostId ) {
-						$(this).children('a').click();
-					}
-				});
-			}
-
-			killScroll = false;
-
-			loader.fadeOut();
-		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
-			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
-			killScroll = false;
-		});
-	}
-
 	$(document).on("click", "a.title", function(e) {
 		killScroll = true;
 
@@ -991,6 +757,40 @@ function getSeparator() {
 	};
 }
 
+/* LOAD FROM HASH */
+function readHash() {
+	var hash = window.location.hash;
+	var hashChunk = window.location.hash.split('/');
+
+	if ( typeof hashChunk[1] !== 'undefined' && hashChunk[1] !== '#' && hashChunk[1] !== '' ) {
+		var activateFeed = hashChunk[1].split('_f');
+		activateFeed = activateFeed[activateFeed.length -1];
+
+		if ( !isNaN(activateFeed) && activateFeed > 0 && (activateFeed != selFeedId || reloadPostList) ) {
+			selFeedId = activateFeed;
+			reloadPostList = false;
+			loadPostlist(selFeedId, 0, function() {
+				if ( typeof isPhone != 'undefined' ) { // For phones.
+					setVSeparator();
+				}
+			});
+		}
+	}
+
+	if ( typeof hashChunk[2] !== 'undefined' && hashChunk[2] !== '' ) {
+		var activatePost = hashChunk[2].split('_p');
+		activatePost = activatePost[activatePost.length -1];
+
+		if ( !isNaN(activatePost) && activatePost > 0 ) {
+			selPostId = activatePost;
+		}
+	}
+	else {
+		selPostId = undefined;
+	}
+}
+/* END LOAD FROM HASH */
+
 function setSeparator(data) {
 	var wx;
 	if		( !isNaN(data) )		{ wx = data;		}
@@ -998,7 +798,8 @@ function setSeparator(data) {
 	else							{ wx = sep.pw;		}
 
 	sep.p.width(wx);
-	sep.n.width(Math.floor(sep.dw - sep.w - sep.p.width() -8)); // -8 depends of borders, margins,...
+	//sep.n.width(Math.floor(sep.dw - sep.w - sep.p.width() -8)); // -8 depends of borders, margins,...
+	sep.n.width("calc(100% - 8px - " + wx + "px)"); // -8 depends of borders, margins,...
 	return wx;
 }
 
@@ -1054,6 +855,210 @@ function readCookie(name) {
 
 function eraseCookie(name) {
 	createCookie(name, "", -1);
+}
+
+function updateFeedlist() {
+	loader.fadeIn();
+
+	$.ajax({
+		type	: "GET",
+		dataType: "json",
+		url		: "feeds/get"
+	}).done(function(flist) {
+		feeds = flist;
+		feedList.html('');
+		unreaded = 0;
+
+		readHash();
+
+		$.each(feeds, function(i, item) {
+			if ( typeof item.folder !== 'undefined' ) {
+				feedList.append( addFolderToList(item) );
+			}
+			else {
+				feedList.append( addFeedToList(item) );
+			}
+
+		});
+
+		$(".list-content").sortable({ connectWith: '.list-content' });
+
+		selFeed = feedList.find('a.selected-feed');
+
+		if (reloadPostList) {
+			readHash();
+		}
+
+		$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
+
+		loader.fadeOut();
+	}).fail(function() {
+		error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
+		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+	});
+}
+
+function updateFeed(feedId) {
+	if ( !isNaN(feedId) ) {
+		var send = {
+			feed	: feedId,
+			action	: 'update'
+		};
+		feeds = manageFeed(send);
+		reloadPostList = true;
+		updateFeedlist();
+	}
+}
+
+function loadPostlist(feed, from, callback) {
+	if ( killScroll == true || typeof(feed) === 'undefined' ) {
+		return;
+	}
+
+	killScroll = true;
+
+	loader.fadeIn();
+
+	var sendData = {
+		feed : feed
+	};
+
+	if ( from > 0 ) {
+		sendData.next = from;
+	}
+	else {
+		posts = {};
+	}
+	plist = {};
+
+	$.ajax({
+		type    : "POST",
+		dataType: "json",
+		url     : "posts/get",
+		data    : sendData
+	}).done(function(plist) {
+		if ( from > 0 && typeof plist.posts !== 'undefined' ) {
+			$.extend(posts.posts, plist.posts);
+		}
+		else if ( from == 0 ) {
+			$.extend(posts, plist);
+		}
+
+		var feedTmpl = $("#feeddata-tmpl").html();
+		var postBase = $("#posts-tmpl").html();
+		var postsTmpl, readed, starred;
+
+		if ( from == 0 ) {
+			postList.html('');
+
+			feedTmpl = feedTmpl
+				.replace("{feed_site}", posts.site)
+				.replace("{feed_name}", posts.name)
+				.replace("{last_update}", posts.last_update);
+			postList.append(feedTmpl);
+		}
+
+		if ( posts.last_update === '' ) {
+			postList.children('.feed-title').children('.feed-last-update').hide();
+		}
+
+		var NXTselPostId = undefined;
+		if ( typeof plist.posts !== 'undefined' ) {
+			var hashChunk = window.location.hash.split('/');
+
+			$.each(plist.posts, function(i, item) {
+				postsTmpl = postBase;
+				readed = (item.readed > 0) ? 'readed' : '';
+				starred = (item.starred > 0) ? 'starred' : '';
+
+				postsTmpl = postsTmpl
+					.replace("{readed}", readed)
+					.replace("{starred}", starred)
+					.replace("{starred}", starred)
+
+					.replace("{id_post}", (typeof hashChunk[1] !== 'undefined') ? (hashChunk[1] + '/' + textToURL(item.title) + '_p' + item.id_post) : item.id_post)
+					.replace("{title}", item.title)
+					.replace("{timestamp}", item.timestamp)
+					.replace("{url}", item.url)
+					.replace("{title}", item.title)
+
+					.replace("{author}", ( item.author != '' ) ? item.author : 'Anonymous');
+
+				postList.children('.entries').append(postsTmpl);
+
+				if ( selPostId == item.id_post ) {
+					NXTselPostId = item.id_post;
+				}
+			});
+		}
+
+		if ( from > 0 && typeof callback === 'function' ) {
+			callback();
+		}
+		else {
+			postList.animate({scrollTop: 0},'500', function() {
+				if (typeof callback === 'function') {
+					callback();
+				}
+			});
+		}
+		lastSelFeed = feed;
+
+		if ( !isNaN(NXTselPostId) && !isNaN(selPostId) && selPostId > 0 ) {
+			$("li.entry").each(function() {
+				var activatePost = $(this).children('a').attr('href').split('_p');
+				activatePost = activatePost[activatePost.length -1];
+
+				if ( activatePost == NXTselPostId ) {
+					$(this).children('a').click();
+				}
+			});
+		}
+
+		killScroll = false;
+
+		loader.fadeOut();
+	}).fail(function() {
+		error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
+		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		killScroll = false;
+	});
+}
+
+function addFeedToList(feedData) {
+	feedsTmpl = $("#feeds-tmpl").html();
+	name = (feedData.name !== '') ? feedData.name : t('No name');
+	feedsTmpl = feedsTmpl
+		.replace("{id_feed}",  '#/' + textToURL(name) + '_f' + feedData.id_feed)
+		.replace("{name}", name)
+		.replace("{not_readed}", ( feedData.count > 0 ) ? 'not-readed' : '')
+		.replace("{selected}", ( typeof(selFeedId) !== 'undefined' && feedData.id_feed == selFeedId ) ? 'selected-feed' : '')
+		.replace("{count}", ( feedData.count > 0 ) ? '(' + feedData.count + ')' : '');
+
+		if ( typeof(feedData.favicon) != 'undefined' ) {
+			feedsTmpl = feedsTmpl.replace("{favicon}", '<img src="' + feedData.favicon + '" />');
+		}
+		else {
+			feedsTmpl = feedsTmpl.replace("{favicon}", '<span class="sprite">&nbsp;</span>');
+		}
+		unreaded = unreaded + parseInt(feedData.count);
+
+	return feedsTmpl;
+}
+
+function addFolderToList(folderData) {
+	var feedsTmpl2 = $("#feeds-tmpl2").html();
+	var tmp = '';
+	$.each(folderData.feeds, function(j, subitem) {
+		tmp = tmp + addFeedToList(subitem);
+	});
+
+	feedsTmpl2 = feedsTmpl2
+		.replace("{folder}", folderData.folder)
+		.replace("{name}", folderData.name)
+		.replace("{feed}", tmp);
+
+	return feedsTmpl2;
 }
 
 /* TRANSLATIONS */
