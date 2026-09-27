@@ -638,3 +638,7 @@ pre { white-space: pre-wrap; }
 	height: 27px;
 	padding: 0 15px;
 }
+
+.feed-panel-form .submit-button {
+	margin-left: 5px;
+}
