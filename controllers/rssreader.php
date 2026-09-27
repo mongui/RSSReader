@@ -121,4 +121,41 @@ class Rssreader extends ControllerBase
 			echo $this->minifier->minify_html($html);
 		}
 	}
+
+	public function img($num = 1)
+	{
+		$x = 32;
+		$y = 0;
+
+		$newWidth = 32;
+		$font_size = 5;
+
+		if ($num > 99) {
+			$num = "+99";
+		}
+
+		$src = imagecreatefrompng("public_data/images/favicon.png");
+
+		list($width, $height) = array(imagesx($src), imagesy($src));
+
+		$newHeight = ($height / $width) * $newWidth;
+		$trg = imagecreatetruecolor($newWidth, $newHeight);
+
+		imagealphablending($trg, false);
+		imagesavealpha($trg, true);
+		imagecopyresampled($trg, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+		$colorBg = imagecolorallocate($trg, 255, 255, 255);
+		imagestring($trg, $font_size, $x -2 - ((strlen($num) * imagefontwidth($font_size))), $y -1, $num, $colorBg);
+		imagestring($trg, $font_size, $x -2 - ((strlen($num) * imagefontwidth($font_size))), $y +1, $num, $colorBg);
+		imagestring($trg, $font_size, $x - ((strlen($num) * imagefontwidth($font_size))), $y -1, $num, $colorBg);
+		imagestring($trg, $font_size, $x - ((strlen($num) * imagefontwidth($font_size))), $y +1, $num, $colorBg);
+
+		$color = imagecolorallocate($trg, 50, 50, 50);
+		imagestring($trg, $font_size, $x -1 - ((strlen($num) * imagefontwidth($font_size))), $y, $num, $color);
+		header('Content-type: image/png');
+		imagepng($trg);
+
+		imagedestroy($trg);
+	}
 }

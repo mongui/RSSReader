@@ -326,6 +326,7 @@ $(document).ready(function(ev) {
 		});
 
 		$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
+		$('#shortcuticon').attr('href', 'img/' + unreaded);
 	}
 
 	$(document).on("click", ".read", function(e) {
@@ -890,6 +891,7 @@ function updateFeedlist() {
 		}
 
 		$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
+		$('#shortcuticon').attr('href', 'img/' + unreaded);
 
 		loader.fadeOut();
 	}).fail(function() {

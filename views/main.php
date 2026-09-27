@@ -12,7 +12,7 @@
 	<!--[if IE]>
 	,normalize.css
 	<![endif]-->
-	<link rel="shortcut icon" href="<?= site_url() ?>public_data/favicon.ico" />
+	<link id="shortcuticon" rel="shortcut icon" href="<?= site_url() ?>public_data/favicon.ico" />
 </head>
 <body>
 	<div class="info" id="loader"><?= t('Loading...') ?></div>
