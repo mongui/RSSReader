@@ -123,7 +123,14 @@
 			</tr>
 			<? foreach($feed_list as $feed): ?>
 			<tr <?= ($feed->active == 0) ? 'class="inactive"' : '' ?> >
-				<td><?= $feed->name ?></td>
+				<? $feed_name = ($feed->name != '') ? $feed->name : t('No name'); ?>
+				<td class="feed-name">
+					<? if ($feed->site != ''): ?>
+					<a href="<?= htmlspecialchars($feed->site) ?>" target="_blank" rel="noopener"><?= $feed_name ?></a>
+					<? else: ?>
+					<?= $feed_name ?>
+					<? endif; ?>
+				</td>
 				<td><a class="sprite load-feed" title="<?= t('Go to the feed') ?>" href="#/access_f<?= $feed->id_feed ?>"></a></td>
 				<td><i class="sprite update-feed" title="<?= t('Update feed') ?>" rel="<?= $feed->id_feed ?>"></i></td>
 				<td><i class="sprite modify-feed" title="<?= t('Modify feed') ?>" rel="<?= $feed->id_feed ?>"></i></td>
@@ -210,7 +217,14 @@
 
 			if (msg == 'success') {
 				var row = $('.content-form .modify-feed[rel="' + feedId + '"]').closest('tr');
-				row.children('td').first().text(feedData.name);
+				// The name links to the main page of the feed.
+				var nameCell = row.children('td').first();
+				var feedName = (feedData.name !== '') ? feedData.name : t('No name');
+				if (feedData.site !== '') {
+					nameCell.html($('<a target="_blank" rel="noopener"></a>').attr('href', feedData.site).text(feedName));
+				} else {
+					nameCell.text(feedName);
+				}
 				row.toggleClass('inactive', feedData.active == 0);
 
 				modifyDialog.addClass('hidden');
@@ -231,7 +245,7 @@
 	$('.content-form .delete-feed').click(function() {
 		var feedId = $(this).attr('rel');
 		var row = $(this).closest('tr');
-		var feedName = row.children('td').first().text();
+		var feedName = $.trim(row.children('td').first().text());
 
 		if (!confirm(t('Delete the feed "%s" with all its posts for every user?').replace('%s', feedName) + '\n\n' + t("This can't be undone."))) {
 			return false;
