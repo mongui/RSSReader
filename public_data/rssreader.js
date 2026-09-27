@@ -166,6 +166,20 @@ $(document).ready(function(ev) {
 			};
 			feeds = manageFeed(send);
 
+			// If the feed is the one shown, its posts are marked as read in the list too.
+			if ( hoverFeed == selFeedId ) {
+				postList.find('.entry').each(function() {
+					$(this).children('.title').addClass('readed');
+					$(this).children('.content').children('.post-manager').children('.read').removeClass('unread');
+				});
+
+				if ( typeof posts.posts !== 'undefined' ) {
+					$.each(posts.posts, function(i, item) {
+						item.readed = 1;
+					});
+				}
+			}
+
 			updateFeedlist();
 		}
 	});
