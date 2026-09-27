@@ -20,6 +20,20 @@ class Update extends ControllerBase
 		//http://simplepie.org/wiki/reference/start
 		$this->load->model('updater');
 		$this->load->model('configuration');
+
+		// From the command line (cron) anybody can update; by URL, only the admin.
+		if (PHP_SAPI !== 'cli') {
+			if (!isset($_SESSION)) {
+				ini_set('session.gc_maxlifetime', $this->config->get('session_timeout'));
+				session_set_cookie_params($this->config->get('session_timeout'));
+				session_start();
+			}
+
+			if (!isset($_SESSION['id']) || $this->config->get('admin') != $_SESSION['id']) {
+				header('HTTP/1.1 403 Forbidden');
+				exit('Only the admin can update the feeds.');
+			}
+		}
 	}
 
 	/**
@@ -46,6 +60,9 @@ class Update extends ControllerBase
 	 *
 	 * Cronjob example:
 	 * * /5 * * * * php /home/user/public_html/index.php update all
+	 *
+	 * By URL, update/all?forced=true updates every active feed, no matter
+	 * when it was updated for the last time.
 	 */
 	public function all()
 	{
@@ -63,10 +80,15 @@ class Update extends ControllerBase
 		ini_set('memory_limit', '256M');
 		$this->_report_fatal_errors();
 
-		$seconds_ago = $this->config->get('minutes_between_updates') * 60;
-		$max_feeds = $this->config->get('max_feeds_per_update');
+		if ($this->_is_forced()) {
+			echo 'Forced: all the active feeds.' . PHP_EOL;
+			$feeds = $this->updater->active_feeds();
+		} else {
+			$seconds_ago = $this->config->get('minutes_between_updates') * 60;
+			$max_feeds = $this->config->get('max_feeds_per_update');
 
-		$feeds = $this->updater->feeds_not_updated($seconds_ago, $max_feeds);
+			$feeds = $this->updater->feeds_not_updated($seconds_ago, $max_feeds);
+		}
 
 		if (sizeof($feeds) > 0) {
 			foreach ($feeds as $feed) {
@@ -83,6 +105,26 @@ class Update extends ControllerBase
 		}
 		echo 'Update finished.' . PHP_EOL;
 		echo '</pre>';
+	}
+
+	/**
+	 * Is Forced
+	 *
+	 * Returns TRUE if the URL has forced=true. It's read from the original URL
+	 * because the rewrite rule of .htaccess doesn't keep the query string.
+	 *
+	 * @access	private
+	 * @return	bool
+	 */
+	private function _is_forced()
+	{
+		if (PHP_SAPI === 'cli' || !isset($_SERVER['REQUEST_URI'])) {
+			return FALSE;
+		}
+
+		parse_str((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $query);
+
+		return isset($query['forced']) && $query['forced'] === 'true';
 	}
 
 	/**

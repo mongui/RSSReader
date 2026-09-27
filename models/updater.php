@@ -114,6 +114,29 @@ class Updater extends ModelBase
 	}
 
 	/**
+	 * Active Feeds
+	 *
+	 * Returns every active feed, the oldest updated first.
+	 *
+	 * @access	public
+	 * @return	object
+	 */
+	function active_feeds()
+	{
+		$sql = "
+			SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active
+			FROM feeds
+			WHERE active = 1
+			ORDER BY last_update ASC
+		";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+
+		return $dbdata->fetchAll(PDO::FETCH_OBJ);
+	}
+
+	/**
 	 * Insert Feed
 	 *
 	 * Adds a feed to the Feeds table and to the User_feed table.
