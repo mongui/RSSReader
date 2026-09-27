@@ -119,7 +119,7 @@
 		<table>
 			<tr>
 				<th>Feed name</th>
-				<th colspan="3">Conf.</th>
+				<th colspan="4">Conf.</th>
 			</tr>
 			<? foreach($feed_list as $feed): ?>
 			<tr <?= ($feed->active == 0) ? 'class="inactive"' : '' ?> >
@@ -127,6 +127,7 @@
 				<td><a class="sprite load-feed" href="#/access_f<?= $feed->id_feed ?>"></a></td>
 				<td><i class="sprite update-feed" rel="<?= $feed->id_feed ?>"></i></td>
 				<td><i class="sprite modify-feed" rel="<?= $feed->id_feed ?>"></i></td>
+				<td><i class="delete-feed" rel="<?= $feed->id_feed ?>" title="Delete feed">&#10006;</i></td>
 			</tr>
 			<? endforeach; ?>
 		</table>
@@ -225,6 +226,45 @@
 			error.text("Can't reach the server. Please, try again later.").fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
+	});
+
+	$('.content-form .delete-feed').click(function() {
+		var feedId = $(this).attr('rel');
+		var row = $(this).closest('tr');
+		var feedName = row.children('td').first().text();
+
+		if (!confirm('Delete the feed "' + feedName + '" with all its posts for every user?\n\nThis can\'t be undone.')) {
+			return false;
+		}
+
+		loader.fadeIn();
+
+		$.ajax({
+			type	: 'POST',
+			url		: 'feeds/manage',
+			data	: {
+				feed	: feedId,
+				action	: 'delete'
+			}
+		}).done(function(msg) {
+			loader.fadeOut();
+
+			if (msg == 'success') {
+				row.remove();
+				updateFeedlist();
+
+				success.text('The feed was successfully deleted.').fadeIn();
+			} else {
+				error.text("The feed couldn't be deleted.").fadeIn();
+			}
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		}).fail(function() {
+			loader.fadeOut();
+			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		});
+
+		return false;
 	});
 
 	$('#modify-feed-cancel').click(function() {

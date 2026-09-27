@@ -108,6 +108,13 @@ class Feeds extends ControllerBase
 			} else {
 				echo 'failure';
 			}
+		} elseif (isset($feed)	&& $action == 'delete'												) {
+			// Deleting a feed and everything related to it? Only the admin can do it.
+			if ($this->config->get('admin') == $_SESSION['id'] && $this->connections->delete_feed($feed)) {
+				echo 'success';
+			} else {
+				echo 'failure';
+			}
 		} else {
 			echo 'failure';
 		}

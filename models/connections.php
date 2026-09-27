@@ -813,6 +813,43 @@ class Connections extends ModelBase
 		$dbdata = $this->conn->prepare($sql);
 		return $dbdata->execute($params);
 	}
+
+	/**
+	 * Delete Feed
+	 *
+	 * Deletes a feed and everything related to it: the read and starred
+	 * marks of its posts, its posts and its subscriptions.
+	 * The tables are MyISAM, so there are no foreign keys doing it.
+	 *
+	 * @access	public
+	 * @param	integer
+	 * @return	bool
+	 */
+	function delete_feed($feed)
+	{
+		$feed = array((int) $feed);
+
+		$queries = array(
+			'DELETE r FROM readed_posts r INNER JOIN posts p ON p.id_post = r.id_post WHERE p.id_feed = ?',
+			'DELETE s FROM starred_posts s INNER JOIN posts p ON p.id_post = s.id_post WHERE p.id_feed = ?',
+			'DELETE FROM posts WHERE id_feed = ?',
+			'DELETE FROM user_feed WHERE id_feed = ?',
+			'DELETE FROM feeds WHERE id_feed = ?'
+		);
+
+		try {
+			foreach ($queries as $sql) {
+				$dbdata = $this->conn->prepare($sql);
+				if (!$dbdata->execute($feed)) {
+					return FALSE;
+				}
+			}
+		} catch (PDOException $err) {
+			return FALSE;
+		}
+
+		return TRUE;
+	}
 }
 
 /*
