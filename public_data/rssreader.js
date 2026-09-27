@@ -238,14 +238,17 @@ $(document).ready(function(ev) {
 
 		hoverFeed = filterFeedURL($(this).prev('.item_link').attr('href'));
 
-		var x = $(document).width() - $(this).offset().left - $(this).outerWidth();
-		var y = $(this).offset().top + $(this).outerHeight();
+		// The position is taken from the icon (content box), not from its padding,
+		// which only makes the clickable area bigger.
+		var iconTop = $(this).offset().top + parseInt($(this).css('padding-top'), 10);
+		var x = $(document).width() - $(this).offset().left - parseInt($(this).css('padding-left'), 10) - $(this).width();
+		var y = iconTop + $(this).height();
 
 		var a = y + fcHeight;
 		var b = feedPanel.offset().top + feedPanel.outerHeight() ;
 
 		if ( a > b ) {
-			y = $(this).offset().top - fcHeight;
+			y = iconTop - fcHeight;
 		}
 
 		displayMenuToggle( $("#feed-contextmenu"), x, y );

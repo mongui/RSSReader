@@ -69,7 +69,9 @@
 
 #feed-list .feed-menu {
 	display: block;
-	margin-top: -18px;
+	margin-top: -20px;
+	padding-top: 2px;
+	padding-bottom: 8px;
 }
 
 .feed-last-update {

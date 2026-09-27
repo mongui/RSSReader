@@ -250,12 +250,16 @@ pre { white-space: pre-wrap; }
 #feed-list .feed-menu {
 	width: 22px;
 	float: right;
-	margin: 5px 10px 5px;
+	/* The padding makes the clickable area bigger. The background is only painted
+	   in the content box, so the icon and its position don't change. */
+	padding: 5px 10px 5px 0;
+	margin: -20px 0 0 10px;
 	background: url("images/sprites.png") no-repeat;
 	background-position: 0px -48px;
+	background-origin: content-box;
+	background-clip: content-box;
 	height: 10px;
 	display: none;
-	margin-top: -15px;
 }
 
 #feed-list .feed-menu:hover {
