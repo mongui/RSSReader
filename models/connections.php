@@ -737,6 +737,82 @@ class Connections extends ModelBase
 		$dbdata = $this->conn->prepare($sql);
 		return $dbdata->execute();
 	}
+
+	/**
+	 * Get All Feeds
+	 *
+	 * Recovers the main data of each feed stored in the database.
+	 *
+	 * @access	public
+	 * @return	object
+	 */
+	function get_all_feeds()
+	{
+		$sql = "SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active FROM feeds";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute();
+
+		return $dbdata->fetchAll(PDO::FETCH_OBJ);
+	}
+
+	/**
+	 * Get Feed
+	 *
+	 * Recovers the main data of a feed stored in the database.
+	 *
+	 * @access	public
+	 * @param	integer
+	 * @return	object
+	 */
+	function get_feed($feed)
+	{
+		$sql = "SELECT id_feed, site, url, name, last_update, favicon, export_set(active, '1', '0', '', 1) AS active FROM feeds WHERE id_feed = ?";
+
+		$dbdata = $this->conn->prepare($sql);
+		$dbdata->execute(array((int) $feed));
+
+		return $dbdata->fetchObject();
+	}
+
+	/**
+	 * Modify Feed
+	 *
+	 * Updates the name, site, url, favicon and active fields of a feed.
+	 *
+	 * @access	public
+	 * @param	integer
+	 * @param	array
+	 * @return	bool
+	 */
+	function modify_feed($feed, $data)
+	{
+		$set = array();
+		$params = array();
+
+		foreach (array('name', 'site', 'url', 'favicon') as $field) {
+			if (isset($data[$field])) {
+				$set[] = "$field = ?";
+				$params[] = trim($data[$field]);
+			}
+		}
+
+		// Inserted as a number, like in Updater::active_feed(), so it works with the BIT column.
+		if (isset($data['active'])) {
+			$set[] = 'active = ' . (($data['active'] == 1) ? 1 : 0);
+		}
+
+		if (empty($set)) {
+			return FALSE;
+		}
+
+		$params[] = (int) $feed;
+
+		$sql = 'UPDATE feeds SET ' . implode(', ', $set) . ' WHERE id_feed = ?';
+
+		$dbdata = $this->conn->prepare($sql);
+		return $dbdata->execute($params);
+	}
 }
 
 /*

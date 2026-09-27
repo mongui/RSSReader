@@ -3,7 +3,6 @@
 		var timeformat = '<?= $_SESSION['timeformat'] ?>';
 		var language = '<?= $_SESSION['language'] ?>';
 	</script>
-
 	<fieldset>
 		<legend>Your preferences</legend>
 		<div class="input">
@@ -65,10 +64,10 @@
 	function serverData() {
 		var srvData = {
 			timezone:		$('#timezone').val(),
-			mins_updates:   $('#mins_updates').val(),
-			max_feeds:      $('#max_feeds').val(),
-			show_favicons:  $('#show_favicons').is(':checked') ? 'true' : 'false',
-			feed_updatable: $('#feed_updatable').is(':checked') ? 'true' : 'false'
+			mins_updates:	$('#mins_updates').val(),
+			max_feeds:		$('#max_feeds').val(),
+			show_favicons:	$('#show_favicons').is(':checked') ? 'true' : 'false',
+			feed_updatable:	$('#feed_updatable').is(':checked') ? 'true' : 'false'
 		};
 
 		return srvData;
@@ -112,3 +111,125 @@
 
 	<button class="submit-button" id="submit-preferences">Update preferences</button>
 </form>
+
+<? if ( isset($is_admin) ): ?>
+<div class="content-form">
+	<fieldset>
+		<legend>Global feed list</legend>
+		<table>
+			<tr>
+				<th>Feed name</th>
+				<th colspan="3">Conf.</th>
+			</tr>
+			<? foreach($feed_list as $feed): ?>
+			<tr <?= ($feed->active == 0) ? 'class="inactive"' : '' ?> >
+				<td><?= $feed->name ?></td>
+				<td><a class="sprite load-feed" href="#/access_f<?= $feed->id_feed ?>"></a></td>
+				<td><i class="sprite update-feed" rel="<?= $feed->id_feed ?>"></i></td>
+				<td><i class="sprite modify-feed" rel="<?= $feed->id_feed ?>"></i></td>
+			</tr>
+			<? endforeach; ?>
+		</table>
+	</fieldset>
+</div>
+
+<div id="modify-feed-dialog" class="hidden">
+	<form name="modify-feed-form" id="modify-feed-form" method="post">
+		<label for="modify-feed-id">Feed ID:</label><input id="modify-feed-id" type="text" disabled />
+		<label for="modify-feed-name">Feed name:</label><input id="modify-feed-name" type="text" />
+		<label for="modify-feed-site">Site main URL:</label><input id="modify-feed-site" type="text" />
+		<label for="modify-feed-url">RSS Feed URL:</label><input id="modify-feed-url" type="text" />
+		<label for="modify-feed-favicon">Favicon URL:</label><input id="modify-feed-favicon" type="text" />
+		<input id="modify-feed-active" type="checkbox" /><label for="modify-feed-active">Active</label>
+		<div>
+			<button id="modify-feed-cancel" class="submit-button">Cancel</button>
+			<input type="submit" id="modify-feed-update" class="submit-button" value="Update" />
+		</div>
+	</form>
+</div>
+<script>
+	// This view is loaded again every time the preferences are opened, so the
+	// events are bound to its own elements instead of to the document.
+	var modifyDialog = $('#modify-feed-dialog');
+
+	$('.content-form .update-feed').click(function() {
+		updateFeed($(this).attr('rel'));
+	});
+
+	$('.content-form .modify-feed').click(function() {
+		loader.fadeIn();
+
+		$.ajax({
+			type	: 'GET',
+			dataType: 'json',
+			url		: 'feeds/get/' + $(this).attr('rel')
+		}).done(function(feedData) {
+			$('#modify-feed-id').val(feedData.id_feed);
+			$('#modify-feed-name').val(feedData.name);
+			$('#modify-feed-site').val(feedData.site);
+			$('#modify-feed-url').val(feedData.url);
+			$('#modify-feed-favicon').val(feedData.favicon);
+			$('#modify-feed-active').prop('checked', feedData.active == 1);
+
+			modifyDialog.removeClass('hidden');
+			loader.fadeOut();
+		}).fail(function() {
+			loader.fadeOut();
+			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		});
+
+		return false;
+	});
+
+	$('#modify-feed-form').submit(function(e) {
+		e.preventDefault();
+
+		var feedId = $('#modify-feed-id').val();
+		var feedData = {
+			name	: $('#modify-feed-name').val(),
+			site	: $('#modify-feed-site').val(),
+			url		: $('#modify-feed-url').val(),
+			favicon	: $('#modify-feed-favicon').val(),
+			active	: $('#modify-feed-active').is(':checked') ? 1 : 0
+		};
+
+		loader.fadeIn();
+
+		$.ajax({
+			type	: 'POST',
+			url		: 'feeds/manage',
+			data	: {
+				feed	: feedId,
+				action	: 'modify',
+				value	: feedData
+			}
+		}).done(function(msg) {
+			loader.fadeOut();
+
+			if (msg == 'success') {
+				var row = $('.content-form .modify-feed[rel="' + feedId + '"]').closest('tr');
+				row.children('td').first().text(feedData.name);
+				row.toggleClass('inactive', feedData.active == 0);
+
+				modifyDialog.addClass('hidden');
+				updateFeedlist();
+
+				success.text('The feed was successfully modified.').fadeIn();
+			} else {
+				error.text("The feed couldn't be modified.").fadeIn();
+			}
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		}).fail(function() {
+			loader.fadeOut();
+			error.text("Can't reach the server. Please, try again later.").fadeIn();
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		});
+	});
+
+	$('#modify-feed-cancel').click(function() {
+		modifyDialog.addClass('hidden');
+		return false;
+	});
+</script>
+<? endif; ?>

@@ -104,6 +104,9 @@ class Rssreader extends ControllerBase
 				$data['is_admin']	= TRUE;
 				$data['timezones']	= file($this->config->get('app_path') . 'timezones.txt');
 				$data['timezones']	= array_map('trim', $data['timezones']);
+
+				$this->load->model('connections');
+				$data['feed_list']	= $this->connections->get_all_feeds();
 			}
 
 			$data['timezone']				= $this->config->get('timezone');

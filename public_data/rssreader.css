@@ -454,6 +454,7 @@ pre { white-space: pre-wrap; }
 	margin-bottom: 1em;
 }
 
+.content-form fieldset,
 .content-form fieldset div {
 	clear: both;
 }
@@ -495,6 +496,79 @@ pre { white-space: pre-wrap; }
 	padding: 0 15px;
 }
 
+.content-form table {
+	width: 100%;
+}
+
+.content-form table td {
+	margin: 0;
+	padding: 5px;
+}
+
+.content-form table tr.inactive {
+	background-color: #eee;
+	color: #888;
+}
+
+.content-form table .sprite {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.content-form table .load-feed {
+	background-position: -36px -144px;
+}
+
+.content-form table .update-feed {
+	background-position: 0px -144px;
+}
+
+.content-form table .modify-feed {
+	background-position: -17px -144px;
+}
+#modify-feed-dialog {
+	padding: 5px 25px 20px 25px;
+	border-radius: 5px;
+	border: 1px solid #B7B3B3;
+	position: fixed;
+	background-color: #FFFFFF;
+	transform: translate(-50%, -50%);
+	left: 50%;
+	top: 50%;
+	width: 400px;
+	max-width: 90%;
+}
+
+#modify-feed-dialog.hidden {
+	display: none;
+}
+
+#modify-feed-dialog label {
+	margin: 15px 0 3px 0;
+	display: inline-block;
+}
+
+#modify-feed-dialog input[type="text"] {
+	width: calc(100% - 20px) !important;
+	display: block;
+}
+
+#modify-feed-dialog input[type="checkbox"] {
+	width: auto !important;
+	display: inline-block;
+}
+
+#modify-feed-dialog div {
+	text-align: right;
+	margin-top: 10px;
+}
+
+#modify-feed-dialog .submit-button:nth-child(2) {
+	margin-left: 10px;
+}
+
 /****************************************************************************************/
 
 .feed-panel-form {
@@ -512,6 +586,7 @@ pre { white-space: pre-wrap; }
 	margin: 0 5px 0 10px;
 }
 
+#modify-feed-dialog input,
 .feed-panel-form input {
 	font-size: 14px;
 	border: 1px solid #AAAAAA;
@@ -521,6 +596,7 @@ pre { white-space: pre-wrap; }
 	width: 200px;
 }
 
+#modify-feed-dialog .submit-button,
 .feed-panel-form .submit-button {
 	background-color: #EEEEEE;
 	border: 1px solid #AAAAAA;

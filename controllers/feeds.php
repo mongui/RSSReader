@@ -35,11 +35,17 @@ class Feeds extends ControllerBase
 	 * 
 	 * Sends a json array with its feeds to the user.
 	 */
-	public function get()
+	public function get($feed_id = null)
 	{
 		$this->load->model('configuration');
-		$feedlist = $this->connections->feeds_per_user($_SESSION['id'], $this->config->get('show_favicons'));
-		echo json_encode($feedlist);
+
+		if ($feed_id != null) {
+			$feed = $this->connections->get_feed(filter_var($feed_id));
+			echo json_encode($feed);
+		} else {
+			$feedlist = $this->connections->feeds_per_user($_SESSION['id'], $this->config->get('show_favicons'));
+			echo json_encode($feedlist);
+		}
 	}
 
 	/**
@@ -91,6 +97,13 @@ class Feeds extends ControllerBase
 		} elseif (isset($feed)	&& $action == 'unsubscribe'											) {
 			// Removing a feed?
 			if ($this->connections->unsubscribe_feed($feed, $_SESSION['id'])) {
+				echo 'success';
+			} else {
+				echo 'failure';
+			}
+		} elseif (isset($feed)	&& $action == 'modify'	&& isset($_POST['value']) && is_array($_POST['value'])	) {
+			// Modifying a feed's info? Only the admin can do it.
+			if ($this->config->get('admin') == $_SESSION['id'] && $this->connections->modify_feed($feed, $_POST['value'])) {
 				echo 'success';
 			} else {
 				echo 'failure';
