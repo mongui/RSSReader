@@ -499,8 +499,6 @@ $(document).ready(function(ev) {
 			content.html( content.html().replace("{content}", posts.posts['post-' + selPostId].content) );
 		}
 
-		postList.animate({scrollTop: selPost.offset().top - header.height()}, '500');
-
 		content.slideToggle( 400, function() {
 			if ( content.css('display') == 'block' && !$(this).prev().hasClass('readed') ) {
 				var send = {
