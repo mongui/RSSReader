@@ -28,3 +28,4 @@ $config['database'] = array(
 			);
 
 $config['debug']					= FALSE;
+$config['session_timeout']			= 604800; // 7 days.
