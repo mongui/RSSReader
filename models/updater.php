@@ -199,23 +199,45 @@ class Updater extends ModelBase
 			$feed = new SimplePie();
 			$feed->force_feed(true);
 
-			$c = curl_init($url);
-			curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
-			curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
-			curl_setopt($c, CURLOPT_CONNECTTIMEOUT, 10);
-			curl_setopt($c, CURLOPT_TIMEOUT, 20);
-			curl_setopt($c, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
+			// Some servers block feed readers and others block browsers (e.g. WordPress.com
+			// answers 403 to an old browser user agent), so both are tried.
+			$user_agents = array(
+				'RSSReader (+https://github.com/mongui/RSSReader)',
+				'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0'
+			);
 
-			$content = curl_exec($c);
+			foreach ($user_agents as $user_agent) {
+				$c = curl_init($url);
+				curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($c, CURLOPT_FOLLOWLOCATION, true);
+				curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
+				curl_setopt($c, CURLOPT_CONNECTTIMEOUT, 10);
+				curl_setopt($c, CURLOPT_TIMEOUT, 20);
+				curl_setopt($c, CURLOPT_USERAGENT, $user_agent);
 
-			if ($content === FALSE) {
-				$feed->error = 'cURL error: ' . curl_error($c);
+				$content = curl_exec($c);
+				$http_code = curl_getinfo($c, CURLINFO_HTTP_CODE);
+				$content_type = curl_getinfo($c, CURLINFO_CONTENT_TYPE);
+
+				if ($content === FALSE) {
+					$feed->error = 'cURL error: ' . curl_error($c);
+					curl_close($c);
+					echo $feed->error . ' ';
+					return $feed;
+				}
 				curl_close($c);
+
+				if ($http_code >= 200 && $http_code < 300) {
+					break;
+				}
+			}
+
+			// The server didn't send the feed (e.g. a 403 page or an anti-bot check).
+			if ($http_code < 200 || $http_code >= 300) {
+				$feed->error = 'HTTP ' . $http_code . ' (' . $content_type . '): the server didn\'t send the feed.';
 				echo $feed->error . ' ';
 				return $feed;
 			}
-			curl_close($c);
 
 			// Adjust the downloaded posts characters.
 			$patterns = array('&aacute;', '&eacute;', '&iacute;', '&oacute;', '&uacute;', '&Aacute;', '&Eacute;', '&Iacute;', '&Ooacute;', '&Uacute;', '&ntilde;', '&Ntilde;');
