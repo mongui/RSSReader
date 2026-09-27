@@ -243,6 +243,10 @@ pre { white-space: pre-wrap; }
 	font-weight: bold;
 }
 
+#feed-list li .inactive {
+	color: #8D8D8D !important;
+}
+
 #feed-list li .selected-feed {
 	color: #CD0000 !important;
 }

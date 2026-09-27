@@ -1035,6 +1035,7 @@ function addFeedToList(feedData) {
 		.replace("{name}", name)
 		.replace("{not_readed}", ( feedData.count > 0 ) ? 'not-readed' : '')
 		.replace("{selected}", ( typeof(selFeedId) !== 'undefined' && feedData.id_feed == selFeedId ) ? 'selected-feed' : '')
+		.replace("{inactive}", ( typeof(feedData.active) === 'undefined' || feedData.active == 0 ) ? 'inactive' : '')
 		.replace("{count}", ( feedData.count > 0 ) ? '(' + feedData.count + ')' : '');
 
 		if ( typeof(feedData.favicon) != 'undefined' ) {

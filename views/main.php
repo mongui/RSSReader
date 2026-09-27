@@ -84,7 +84,7 @@
 	<div id="templates">
 		<ul id="feeds-tmpl">
 			<li>
-				<a href="{id_feed}" class="item_link {not_readed} {selected}">
+				<a href="{id_feed}" class="item_link {not_readed} {selected} {inactive}">
 					{favicon}
 					{name} {count}
 				</a><span class="feed-menu">&nbsp;</span>

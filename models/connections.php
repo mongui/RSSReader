@@ -75,7 +75,7 @@ class Connections extends ModelBase
 		$get_fav = ($favicon) ? 'f.favicon,' : '';
 		if ($unread) {
 			$sql = "
-				SELECT u.id_feed, o.name AS foldername, o.id_folder, o.position AS folder_position, $get_fav u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count, f.site, f.url, f.last_update, u.position
+				SELECT u.id_feed, o.name AS foldername, o.id_folder, o.position AS folder_position, $get_fav u.name, count(distinct p.id_post)-count( IF(r.id_user=$user_id, 1, NULL) ) AS count, f.site, f.url, f.last_update, u.position, export_set(active, '1', '0', '', 1) AS active
 				FROM feeds f
 				LEFT JOIN posts p ON p.id_feed = f.id_feed
 				LEFT JOIN readed_posts r ON p.id_post = r.id_post
