@@ -247,7 +247,7 @@
 		AAAASUVORK5CYII=" alt="Dib" />
 
 		<div id="oops" class="errheader">Oops!</div>
-		<p>The server is currently unavailable. Please, try again a few minutes later. If it persists, notify the webmaster.</p>
+		<p>The server is currently unavailable. Please try again in a few minutes. If it persists, notify the webmaster.</p>
 		
 		<div id="errnum" class="errheader">503</div>
 	</div>

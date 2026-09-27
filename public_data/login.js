@@ -155,7 +155,7 @@ $(document).ready(function ()
 		if ( regPass.val().length < 6 ) {
 			regPass.addClass('empty-input');
 			regPass2.addClass('empty-input');
-			$("#error").text('Your password must be at least 6 characters.');
+			$("#error").text('Your password must be at least 6 characters long.');
 			$("#error").fadeIn();
 			error = true;
 		}
@@ -203,7 +203,7 @@ $(document).ready(function ()
 			if ( msg === 'success' )
 			{
 				$(".info").fadeOut();
-				$("#success").text('Welcome! You are now registered. Go back and login with your user and pass.');
+				$("#success").text('Welcome! You are now registered. Go back and log in with your username and password.');
 				$("#success").fadeIn();
 			}
 			else if ( msg === 'user' )
@@ -221,7 +221,7 @@ $(document).ready(function ()
 			else if ( msg === 'failure' )
 			{
 				$(".info").fadeOut();
-				$("#error").text('Something went wrong on the server. Please, try again later.');
+				$("#error").text('Something went wrong on the server. Please try again later.');
 				$("#error").fadeIn();
 			}
 		});

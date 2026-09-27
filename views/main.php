@@ -36,15 +36,15 @@
 			</div>
 			<form id="add-form" class="feed-panel-form">
 				<label for="feed-url"><?= t('Feed URL:') ?></label>
-				<input type="text" id="feed-url" name="feed-url" placeholder="<?= t('Paste here the feed URL') ?>" />
+				<input type="text" id="feed-url" name="feed-url" placeholder="<?= t('Paste the feed URL here') ?>" />
 				<button class="submit-button" id="submit-feed"><?= t('Add feed') ?></button>
 			</form>
 
 			<div class="list-title"><span class="sprite">&nbsp;</span><?= t('Highlights') ?></div>
 			<ul class="list-content">
-				<li id="highlight-unreaded"><span class="sprite">&nbsp;</span><?= t('Unreaded') ?></li>
+				<li id="highlight-unreaded"><span class="sprite">&nbsp;</span><?= t('Unread') ?></li>
 				<li id="highlight-starred"><span class="sprite">&nbsp;</span><?= t('Starred') ?></li>
-				<li id="highlight-readed"><span class="sprite">&nbsp;</span><?= t('Last readed') ?></li>
+				<li id="highlight-readed"><span class="sprite">&nbsp;</span><?= t('Recently read') ?></li>
 				<li id="highlight-search"><span class="sprite">&nbsp;</span><?= t('Search') ?></li>
 			</ul>
 
@@ -74,9 +74,9 @@
 			<fieldset id="welcome-fieldset">
 				<h2><?= t('What is RSS Reader?') ?></h2>
 				<img src="<?= site_url() ?>/public_data/images/rsslogo.png" alt="<?= t('RSS logo') ?>" />
-				<p><?= t('RSS Reader is an aggregator. Thanks to the aggregators or web feed readers (programs or sites that let you read web sources) summaries of all the sites you want can be obtained from the desktop of the operating system, e-mail programs or through web applications that function as aggregators. There is no need to open the browser and visit dozens of pages.') ?></p>
+				<p><?= t('RSS Reader is a feed aggregator. Aggregators, or feed readers, are programs and websites that gather the summaries of all the sites you follow in one place: on your desktop, in your email program or in a web application like this one. There is no need to open dozens of pages to keep up to date.') ?></p>
 				<h2><?= t('What is RSS?') ?></h2>
-				<p><?= t('RSS stands for Really Simple Syndication, an XML format for sharing content on the Web. It\'s used to spread frequently updated information to users who have subscribed to the content source. The format allows to distribute content without a browser, using software designed to read these RSS feeds (aggregator). Nevertheless, it is possible to use a browser to read RSS content. The latest versions of the major browsers can read RSS with no additional software required. RSS is part of the family of XML formats developed specifically for all types of sites that are updated frequently and through which information can be shared and used on other web sites or programs. This is known as web or web syndication.') ?></p>
+				<p><?= t('RSS stands for Really Simple Syndication, an XML format for sharing content on the Web. It\'s used to spread frequently updated information to users who have subscribed to the content source. The format allows content to be distributed without a browser, using software designed to read these RSS feeds (aggregator). Nevertheless, it is possible to use a browser to read RSS content. The latest versions of the major browsers can read RSS with no additional software required. RSS is part of the family of XML formats developed specifically for all types of sites that are updated frequently and through which information can be shared and used on other web sites or programs. This is known as web syndication.') ?></p>
 			</fieldset>
 		</div>
 	</div>
@@ -120,7 +120,7 @@
 						<div class="author"><?= t('by') ?> <span>{author}</span>.</div>
 						{content}
 					</div>
-					<div class="post-manager"><span class="read"><i class="sprite"></i> <?= t('Unreaded', 'post') ?> </span> | <span class="star {starred}" id="star2"><i class="sprite"></i> <?= t('Starred', 'post') ?> </span></div>
+					<div class="post-manager"><span class="read"><i class="sprite"></i> <?= t('Unread', 'post') ?> </span> | <span class="star {starred}" id="star2"><i class="sprite"></i> <?= t('Starred', 'post') ?> </span></div>
 				</div>
 			</li>
 		</ul>

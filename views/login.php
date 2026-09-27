@@ -42,7 +42,7 @@
 
 			<div class="controls">
 				<div class="control-login">
-					<button class="button-submit" id="button-login">Login</button>
+					<button class="button-submit" id="button-login">Log in</button>
 				</div>
 
 				<div class="change-form">

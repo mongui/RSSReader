@@ -154,7 +154,7 @@ $(document).ready(function(ev) {
 			$('title').html('RSS Reader&nbsp;(' + unreaded + ')');
 			loader.fadeOut();
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	}
@@ -467,7 +467,7 @@ $(document).ready(function(ev) {
 
 			loader.fadeOut();
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 			killScroll = false;
 		});
@@ -688,7 +688,7 @@ $(document).ready(function(ev) {
 			success.text(t('The feed was successfully added.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
@@ -783,7 +783,7 @@ $(document).ready(function(ev) {
 			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	});
@@ -799,7 +799,7 @@ $(document).ready(function(ev) {
 
 		if ( newPassword != '' || newPassword2 != '' ) {
 			if ( newPassword.length < 6 ) {
-				error.text(t('Your password must be at least 6 characters.')).fadeIn();
+				error.text(t('Your password must be at least 6 characters long.')).fadeIn();
 				return false;
 			}
 			else if ( newPassword !== newPassword2 ) {
@@ -847,12 +847,12 @@ $(document).ready(function(ev) {
 				error.text(t('Your current password is not correct.')).fadeIn();
 			}
 			else {
-				error.text(t('Something wrong happened. We can\'t save your preferences now. Sorry.')).fadeIn();
+				error.text(t('Something went wrong. We can\'t save your preferences now. Sorry.')).fadeIn();
 			}
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 		return false;
@@ -872,7 +872,7 @@ $(document).ready(function(ev) {
 			feed = null;
 			loader.fadeOut();
 		}).fail(function() {
-			error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 			setTimeout(function(){ $('.info').fadeOut(); }, 5000);
 		});
 	});
@@ -917,7 +917,7 @@ $(document).ready(function(ev) {
 				else {
 					if ( count >= 15 ) {
 						subInt = window.clearInterval(subInt);
-						error.text(t('Something wrong happened. We can\'t upload your file now. Sorry.')).fadeIn();
+						error.text(t('Something went wrong. We can\'t upload your file now. Sorry.')).fadeIn();
 						setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 					}
 
@@ -1070,7 +1070,7 @@ function manageFeed(send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+		error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }
@@ -1083,7 +1083,7 @@ function managePost(send) {
 	}).done(function(msg) {
 		return msg;
 	}).fail(function() {
-		error.text(t('Can\'t reach the server. Please, try again later.')).fadeIn();
+		error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
 		setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 	});
 }

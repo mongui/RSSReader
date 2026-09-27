@@ -251,7 +251,7 @@
 		" alt="Gir" />
 		
 		<div id="oops" class="errheader">Oops!</div>
-		<p>Well, this is embarrasing. We can't find the page you are looking for.<br />Please double-check the URL or visit one of the other sections featured on this web.</p>
+		<p>Well, this is embarrassing. We can't find the page you are looking for.<br />Please double-check the URL or visit one of the other sections featured on this website.</p>
 		
 		<div id="errnum" class="errheader">404</div>
 	</div>

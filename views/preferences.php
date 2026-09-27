@@ -77,7 +77,7 @@
 	<fieldset>
 		<legend><?= t('Server configuration') ?></legend>
 		<div class="input">
-			<label for="timezone"><?= t('Timezone of the server') ?></label>
+			<label for="timezone"><?= t('Server time zone') ?></label>
 			<select id="timezone" class="inputbox" tabindex="6">
 				<? foreach ($timezones as $tz): ?>
 				<option value="<?= $tz ?>" <?= ($timezone == $tz) ? 'selected="selected"' : '' ?>><?= $tz ?></option>
@@ -86,7 +86,7 @@
 		</div>
 
 		<div class="input">
-			<label for="mins_updates"><?= t('Minutes between feeds updates') ?></label>
+			<label for="mins_updates"><?= t('Minutes between feed updates') ?></label>
 			<input id="mins_updates" class="inputbox" type="text" tabindex="7" value="<?= $minutes_between_updates ?>" />
 		</div>
 
@@ -96,7 +96,7 @@
 		</div>
 
 		<div class="input">
-			<label for="show_favicons"><?= t('Show favicons in the feedlist') ?></label>
+			<label for="show_favicons"><?= t('Show favicons in the feed list') ?></label>
 			<input id="show_favicons" class="inputbox" type="checkbox" tabindex="9" value="1" <?= ($show_favicons) ? 'checked="checked"' : '' ?> />
 			<?= t('Yes') ?>
 		</div>
@@ -145,7 +145,7 @@
 	<form name="modify-feed-form" id="modify-feed-form" method="post">
 		<label for="modify-feed-id"><?= t('Feed ID:') ?></label><input id="modify-feed-id" type="text" disabled />
 		<label for="modify-feed-name"><?= t('Feed name:') ?></label><input id="modify-feed-name" type="text" />
-		<label for="modify-feed-site"><?= t('Site main URL:') ?></label><input id="modify-feed-site" type="text" />
+		<label for="modify-feed-site"><?= t('Website URL:') ?></label><input id="modify-feed-site" type="text" />
 		<label for="modify-feed-url"><?= t('RSS Feed URL:') ?></label><input id="modify-feed-url" type="text" />
 		<label for="modify-feed-favicon"><?= t('Favicon URL:') ?></label><input id="modify-feed-favicon" type="text" />
 		<input id="modify-feed-active" type="checkbox" /><label for="modify-feed-active"><?= t('Active') ?></label>
@@ -183,7 +183,7 @@
 			loader.fadeOut();
 		}).fail(function() {
 			loader.fadeOut();
-			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
+			error.text(t("Can't reach the server. Please try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
@@ -237,7 +237,7 @@
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
 			loader.fadeOut();
-			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
+			error.text(t("Can't reach the server. Please try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 	});
@@ -274,7 +274,7 @@
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		}).fail(function() {
 			loader.fadeOut();
-			error.text(t("Can't reach the server. Please, try again later.")).fadeIn();
+			error.text(t("Can't reach the server. Please try again later.")).fadeIn();
 			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
 		});
 
