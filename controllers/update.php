@@ -70,7 +70,9 @@ class Update extends ControllerBase
 			$this->_prepare_streaming();
 		}
 
-		echo '<pre>';
+		if (PHP_SAPI !== 'cli') {
+			echo '<pre>';
+		}
 		echo 'Starting update.' . PHP_EOL;
 		$this->_flush();
 
@@ -104,7 +106,9 @@ class Update extends ControllerBase
 			echo 'Nothing to update.' . PHP_EOL;
 		}
 		echo 'Update finished.' . PHP_EOL;
-		echo '</pre>';
+		if (PHP_SAPI !== 'cli') {
+			echo '</pre>';
+		}
 	}
 
 	/**
