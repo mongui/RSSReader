@@ -208,6 +208,10 @@ class Updater extends ModelBase
 		$this->load->library('simplepie');
 		$feed = new SimplePie();
 
+		// SimplePie keeps every feed for an hour in ./cache, so an update within that
+		// hour got the old copy and didn't find the new posts. The posts are stored
+		// in the database, so the cache isn't needed.
+		$feed->enable_cache(false);
 		$feed->set_feed_url($url);
 		$feed->set_timeout(15);
 		$feed->force_feed(true);
