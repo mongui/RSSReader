@@ -1,6 +1,10 @@
 <?php
 define('MVCious', TRUE);
 define('APP_PATH', dirname(__FILE__));
+
+// The paths of the framework (controllers/, models/...) are relative, but a cron
+// runs the script from another folder (e.g. the home of the Plesk subscription).
+chdir(APP_PATH);
 require 'config.php';
 
 // Debug mode for a development environment.
@@ -32,6 +36,13 @@ function &get_instance()
 function load_error($errnum = 404, $text)
 {
 	global $config;
+
+	// From the command line (cron), a plain message in the error output.
+	if (PHP_SAPI === 'cli') {
+		fwrite(STDERR, 'Error ' . $errnum . ': ' . trim($text) . PHP_EOL);
+		exit(1);
+	}
+
 	header(':', TRUE, $errnum);
 	
 	if (isset($config['debug']) && $config['debug'] == TRUE) {
@@ -49,11 +60,10 @@ function load_error($errnum = 404, $text)
 }
 
 // Is it a CLI or a web request?
-if (isset($argv[1])) {
-	$path = $argv;
-	array_shift($path);
-	$path = array_map('strtolower', $path);
-	$uri  = array_diff($path, array(''));
+if (PHP_SAPI === 'cli' && isset($_SERVER['argv'][1])) {
+	// "update all", "update/all" or "update all" as a single argument.
+	$path = array_diff(array_slice($_SERVER['argv'], 1), array('--'));
+	$uri  = preg_split('#[\s/]+#', strtolower(implode(' ', $path)), -1, PREG_SPLIT_NO_EMPTY);
 } else {
 	// Gets the URI and splits it.
 	$path = (isset($_SERVER['PATH_INFO'])) ? $_SERVER['PATH_INFO'] : @getenv('PATH_INFO');
