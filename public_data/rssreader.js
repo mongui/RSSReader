@@ -289,6 +289,12 @@ $(document).ready(function(ev) {
 			}
 		}
 
+		// The opened post goes to the top of the visible list, while it opens.
+		if ( content.css('display') != 'block' ) {
+			var entry = $(this).parents('.entry');
+			postList.stop().animate({ scrollTop: postList.scrollTop() + entry.offset().top - postList.offset().top }, 400);
+		}
+
 		content.slideToggle( 400, function() {
 			if ( content.css('display') == 'block' && !$(this).prev().hasClass('readed') ) {
 				var send = {

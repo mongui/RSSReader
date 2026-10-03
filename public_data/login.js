@@ -50,7 +50,7 @@ $(document).ready(function ()
 			}
 		}).done(function(msg) {
 			if ( msg === 'success' ) {
-				window.location = './';
+				window.location = './' + window.location.hash;
 			}
 			else if ( msg === 'failure' ) {
 				$(".info").fadeOut();
