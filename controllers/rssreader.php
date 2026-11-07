@@ -39,6 +39,11 @@ class Rssreader extends ControllerBase
 			$data = array();
 			$data['feed_updatable'] = $this->config->get('feed_updatable');
 
+			// Activating a feed affects every user, so only the admin sees it.
+			if ($this->config->get('admin') == $_SESSION['id']) {
+				$data['is_admin'] = TRUE;
+			}
+
 			$this->load->helper('phone');
 			if (is_phone()) {
 				$data['is_phone'] = TRUE;

@@ -128,6 +128,12 @@ $(document).ready(function(ev) {
 
 		hoverFeed = filterFeedURL($(this).prev('.item_link').attr('href'));
 
+		// Only the admin has these entries. Shows the one that changes the current state.
+		var hoverData = findFeedData(hoverFeed);
+		var isActive = hoverData && hoverData.active == 1;
+		$('#activate-feed').toggle(!isActive);
+		$('#deactivate-feed').toggle(isActive);
+
 		// The position is taken from the icon (content box), not from its padding,
 		// which only makes the clickable area bigger.
 		var iconTop = $(this).offset().top + parseInt($(this).css('padding-top'), 10);
@@ -182,6 +188,27 @@ $(document).ready(function(ev) {
 
 			updateFeedlist();
 		}
+	});
+
+	$('#activate-feed, #deactivate-feed').click( function() {
+		if ( isNaN(hoverFeed) ) {
+			return;
+		}
+
+		var active = ( this.id === 'activate-feed' ) ? 1 : 0;
+
+		$.ajax({
+			type	: "POST",
+			url		: "feeds/manage",
+			data	: { feed: hoverFeed, action: 'modify', value: { active: active } }
+		}).done(function(msg) {
+			if ( msg === 'success' ) {
+				updateFeedlist();
+			}
+		}).fail(function() {
+			error.text(t('Can\'t reach the server. Please try again later.')).fadeIn();
+			setTimeout(function(){ $(".info").fadeOut(); }, 5000);
+		});
 	});
 
 	$('#update-feed').click( function() {
@@ -1279,6 +1306,23 @@ function addFolderToList(folderData) {
 // Returns the translation of an English text (see languages/*.php).
 function t(text) {
 	return ( typeof lang !== 'undefined' && lang[text] ) ? lang[text] : text;
+}
+
+// Finds a feed of the list, inside a folder or not.
+function findFeedData(feedId) {
+	var found = null;
+	$.each(feeds, function(i, item) {
+		$.each(( typeof item.feeds !== 'undefined' ) ? item.feeds : [item], function(i2, item2) {
+			if ( item2.id_feed == feedId ) {
+				found = item2;
+				return false;
+			}
+		});
+		if ( found ) {
+			return false;
+		}
+	});
+	return found;
 }
 
 function manageFeed(send) {

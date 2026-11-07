@@ -26,6 +26,8 @@ return array(
 	'Change feed name'						=> 'Cambiar nombre del feed',
 	'Add to a folder'						=> 'Añadir a una carpeta',
 	'Update feed'							=> 'Actualizar feed',
+	'Activate feed'							=> 'Activar feed',
+	'Deactivate feed'						=> 'Desactivar feed',
 	'Unsubscribe'							=> 'Cancelar suscripción',
 	'What is RSS Reader?'					=> '¿Qué es RSS Reader?',
 	'RSS logo'								=> 'Logo de RSS',

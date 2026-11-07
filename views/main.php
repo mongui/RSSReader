@@ -63,6 +63,10 @@
 				<? if ($feed_updatable): ?>
 					<li id="update-feed"><?= t('Update feed') ?></li>
 				<? endif; ?>
+				<? if (isset($is_admin)): ?>
+					<li id="activate-feed"><?= t('Activate feed') ?></li>
+					<li id="deactivate-feed"><?= t('Deactivate feed') ?></li>
+				<? endif; ?>
 				<li class="hr">&nbsp;</li>
 				<li id="unsubscribe"><?= t('Unsubscribe') ?></li>
 			</ul>
