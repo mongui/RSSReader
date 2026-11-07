@@ -18,9 +18,8 @@ class Login extends ControllerBase
 		parent::__construct();
 
 		if (!isset($_SESSION)) {
-			ini_set('session.gc_maxlifetime', $this->config->get('session_timeout'));
-			session_set_cookie_params($this->config->get('session_timeout'));
-			session_start();
+			$this->load->helper('session');
+			start_session($this->config->get('session_timeout'), $this->config->get('app_path') . 'cache/sessions');
 		}
 
 		$this->load->model('manage_users');
@@ -61,7 +60,7 @@ class Login extends ControllerBase
 
 			if ($userdata) {
 				if ($remember == 'yes') {
-					setcookie('rss_sess', $userdata->auth_key, time() + 60 * 60 * 24 * 365, '/', 'localhost', FALSE, TRUE);
+					setcookie('rss_sess', $userdata->auth_key, time() + $this->config->get('session_timeout'), '/', '', FALSE, TRUE);
 				}
 
 				$this->sessions($userdata);

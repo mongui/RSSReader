@@ -24,9 +24,8 @@ class Update extends ControllerBase
 		// From the command line (cron) anybody can update; by URL, only the admin.
 		if (PHP_SAPI !== 'cli') {
 			if (!isset($_SESSION)) {
-				ini_set('session.gc_maxlifetime', $this->config->get('session_timeout'));
-				session_set_cookie_params($this->config->get('session_timeout'));
-				session_start();
+				$this->load->helper('session');
+				start_session($this->config->get('session_timeout'), $this->config->get('app_path') . 'cache/sessions');
 			}
 
 			if (!isset($_SESSION['id']) || $this->config->get('admin') != $_SESSION['id']) {

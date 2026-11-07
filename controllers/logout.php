@@ -18,13 +18,12 @@ class Logout extends ControllerBase
 	public function index()
 	{
 		if (!isset($_SESSION)) {
-			ini_set('session.gc_maxlifetime', $this->config->get('session_timeout'));
-			session_set_cookie_params($this->config->get('session_timeout'));
-			session_start();
+			$this->load->helper('session');
+			start_session($this->config->get('session_timeout'), $this->config->get('app_path') . 'cache/sessions');
 		}
 		
 		if (isset($_COOKIE['rss_sess'])) {
-			setcookie("rss_sess", "", time() - 3600, "/", "localhost", false, true);
+			setcookie("rss_sess", "", time() - 3600, "/", "", false, true);
 		}
 
 		if (isset($_SESSION)) {
